@@ -37,4 +37,10 @@ Durations are nonnegative decimal integers without leading zeros. Other fields m
 
 Match the entire record. Accept any nonempty ID and request token without spaces; do not filter by particular IDs or request numbers. Use only the taught anchors, literals, escaped periods, character classes, grouping, alternatives, and repetition. No lookarounds, PCRE, or extra filtering commands.
 
-Submit your expression and `challenge-evidence.txt`. Count saved lines with `cat challenge-evidence.txt | grep -c '^'`. The score is the number of qualifying lines collected during the timed attempt; false positives and duplicate submissions of the same captured event do not count. Expected totals depend on the instructor's time limit and when collection starts.
+Submit your expression and `challenge-evidence.txt`. Evaluate the evidence with:
+
+```bash
+python regex_challenge_checker.py challenge-evidence.txt
+```
+
+The checker reports `Total Correct`, `Total Incorrect`, and `Score`. The score is the number of valid lines minus the number of invalid lines. Every submitted line is evaluated independently, including repeated lines; blank lines count as incorrect. Submit each captured event only once. The checker validates content, not collection timing or provenance. Expected totals depend on the instructor's time limit and when collection starts.
