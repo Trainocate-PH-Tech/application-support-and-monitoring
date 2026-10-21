@@ -1,8 +1,8 @@
 # MySQL Support Diagnostics on Linux
 
-A step-by-step guide for an Ubuntu EC2 instance with MySQL already installed. The included [sample SQL file](shared/sql/mysql/support-diagnostics-sample.sql) creates a small synthetic customer/order database named `mysql_support_demo`. No sample application is required; load the data in Task 4 before continuing with database exercises. Examples target MySQL 8.0/8.4; confirm the installed version before interpreting output.
+A step-by-step guide for an Ubuntu EC2 instance with MySQL already installed. The included [sample SQL file](shared/sql/mysql/support-diagnostics-sample.sql) creates a small synthetic customer/order database named `mysql_support_demo`. No sample application is required; load the data in [Admin: load the sample database and provide read access](#section-admin-load-the-sample-database-and-provide-read-access) before continuing with database exercises. Examples target MySQL 8.0/8.4; confirm the installed version before interpreting output.
 
-## Task 1 — Admin: start, stop, and restart MySQL as the ubuntu user
+## Section: Admin: start, stop, and restart MySQL as the ubuntu user
 
 **Where:** Bash in your existing SSH session on the EC2 instance.
 
@@ -61,19 +61,19 @@ The Linux `ubuntu` account normally has sudo access. It is separate from a MySQL
 
    Restart also interrupts connections. It is not necessary to restart after every diagnostic task.
 
-**If it differs:** If the unit is missing, inspect `systemctl list-unit-files 'mysql*' 'mysqld*' 'mariadb*'`. Confirm which database is actually installed before substituting a service name; MariaDB is a different product. If startup fails, continue with Task 2 and Task 9 rather than repeatedly restarting.
+**If it differs:** If the unit is missing, inspect `systemctl list-unit-files 'mysql*' 'mysqld*' 'mariadb*'`. Confirm which database is actually installed before substituting a service name; MariaDB is a different product. If startup fails, continue with [Validate the service and local listener](#section-validate-the-service-and-local-listener) and [Locate and inspect the error log](#section-locate-and-inspect-the-error-log) rather than repeatedly restarting.
 
 Ubuntu package/service context: [Ubuntu MySQL server documentation](https://ubuntu.com/server/docs/install-and-configure-a-mysql-server/).
 
-## Before the diagnostic tasks
+## Before the diagnostic sections
 
 - Run **Bash** blocks at your Linux shell and **SQL** blocks at the `mysql>` prompt. Do not paste prompt characters such as `$` or `mysql>`.
 - Replace `YOUR_DB_USER` with your assigned MySQL login. Never put a password directly in a command or shared evidence.
-- Tasks 2–3, 5–9, and 13 inspect state. Task 4 loads data and provisions access; Tasks 10–12 change logging and belong in a controlled administrative exercise; skip them during a read-only investigation.
+- The service validation, client, session, connection, variable, error-log, and baseline sections inspect state. The sample database setup section loads data and provisions access; the slow-query capture, verification, and restoration sections change logging and belong in a controlled administrative exercise; skip them during a read-only investigation.
 - Use your diagnostic account for routine checks. Linux sudo access does not automatically grant privileges to that database account.
 - Keep timestamps with your observations. SQL text and logs can contain application data; redact sensitive values before sharing.
 
-## Task 2 — Validate the service and local listener
+## Section: Validate the service and local listener
 
 **Where:** Bash on EC2.
 
@@ -94,13 +94,13 @@ Ubuntu package/service context: [Ubuntu MySQL server documentation](https://ubun
 
    A `LISTEN` entry identifies a listening socket and its bound address. `127.0.0.1:3306` accepts local TCP connections only. No entry may mean a different port, socket-only operation, or a stopped service; it does not by itself prove failure.
 
-3. Record whether the service is active, whether a listener exists, and any recent startup error. Test database access in Task 3.
+3. Record whether the service is active, whether a listener exists, and any recent startup error. Test database access in [Connect with the mysql client](#section-connect-with-the-mysql-client).
 
 **Expected result:** Service state, journal evidence, and listener state agree. A running service alone does not prove that credentials work or that application queries are healthy.
 
 **If it differs:** For remote connection failures, have the owner verify private routing and EC2 security-group rules. Do not expose port 3306 publicly as a troubleshooting shortcut.
 
-## Task 3 — Connect with the mysql client
+## Section: Connect with the mysql client
 
 **Where:** Bash on EC2, then the MySQL client.
 
@@ -136,7 +136,7 @@ Ubuntu package/service context: [Ubuntu MySQL server documentation](https://ubun
 
    If it fails, use the configured administrator login. Do not change authentication to make this example work.
 
-**Expected result:** The `mysql>` prompt appears. Use your diagnostic login for Tasks 5–9.
+**Expected result:** The `mysql>` prompt appears. Use your diagnostic login for the client basics, session, connection, variable, and error-log sections.
 
 | Error | Next check |
 |---|---|
@@ -145,7 +145,7 @@ Ubuntu package/service context: [Ubuntu MySQL server documentation](https://ubun
 | Cannot connect to server / error 2003 | Check host, TCP port, listener, and network reachability. |
 | Too many connections / error 1040 | Record the error and ask the DBA to inspect capacity; avoid repeated connection attempts. |
 
-## Task 4 — Admin: load the sample database and provide read access
+## Section: Admin: load the sample database and provide read access
 
 **Where:** Bash on the Ubuntu EC2 host containing this repository, then an administrative MySQL client. This is a setup task that writes training data.
 
@@ -177,7 +177,7 @@ The sample contains three fictional customers and six orders. `customers.custome
 
    **Repeat runs:** The script deliberately fails if `mysql_support_demo` already exists. It does not drop or overwrite data. If you already loaded it, skip reimporting and verify the counts below. If a previous import failed partway, have the administrator inspect the dedicated training database before deciding how to recover; do not continue past errors or delete an unfamiliar database.
 
-3. Open an administrative client using Task 3. If you already have an assigned diagnostic account, have the administrator grant it `SELECT` on `mysql_support_demo.*` using its exact account and host. For a dedicated local exercise, create a new account as follows, replacing the password placeholder privately before execution:
+3. Open an administrative client using [Connect with the mysql client](#section-connect-with-the-mysql-client). If you already have an assigned diagnostic account, have the administrator grant it `SELECT` on `mysql_support_demo.*` using its exact account and host. For a dedicated local exercise, create a new account as follows, replacing the password placeholder privately before execution:
 
    ```sql
    CREATE USER 'mysql_demo_reader'@'localhost' IDENTIFIED BY 'REPLACE_WITH_PRIVATE_PASSWORD';
@@ -207,7 +207,7 @@ The sample contains three fictional customers and six orders. `customers.custome
 
 **Expected result:** The sample is loaded and a reader can query it. Keep it available for the remaining tasks; service and logging restoration do not remove the data.
 
-## Task 5 — Use the client and establish identity
+## Section: Use the client and establish identity
 
 **Where:** `mysql>`.
 
@@ -258,11 +258,11 @@ The sample contains three fictional customers and six orders. `customers.custome
 
 5. To cancel an unfinished statement, type `SELECT` without a semicolon, press Enter, then type `\c` at the continuation prompt. This clears input that has not been submitted; it does not cancel a running server query.
 
-6. Type `\h` for client help. Type `exit` when you need to return to Bash. Reconnect using Task 3 before the next SQL task.
+6. Type `\h` for client help. Type `exit` when you need to return to Bash. Reconnect using [Connect with the mysql client](#section-connect-with-the-mysql-client) before the next SQL task.
 
 **Expected result:** You can distinguish the Linux shell from the MySQL client, terminate statements with `;`, and recover from unfinished input.
 
-## Task 6 — Inspect sessions with SHOW PROCESSLIST
+## Section: Inspect sessions with SHOW PROCESSLIST
 
 **Where:** `mysql>` using your diagnostic account.
 
@@ -308,7 +308,7 @@ The sample contains three fictional customers and six orders. `customers.custome
 
 **If it differs:** Without the `PROCESS` privilege, visibility is restricted to your own account's threads. A short list is not proof that the whole server is idle. Do not issue `KILL` during this task. See [MySQL SHOW PROCESSLIST](https://dev.mysql.com/doc/refman/8.4/en/show-processlist.html).
 
-## Task 7 — Check connection counts and headroom
+## Section: Check connection counts and headroom
 
 **Where:** `mysql>`.
 
@@ -342,7 +342,7 @@ The sample contains three fictional customers and six orders. `customers.custome
 
 **Expected result:** You can distinguish current load from historical activity. If headroom is low, correlate sessions and application errors; raising `max_connections` is a separate capacity decision.
 
-## Task 8 — Inspect global and session variables
+## Section: Inspect global and session variables
 
 **Where:** `mysql>`.
 
@@ -378,7 +378,7 @@ The sample contains three fictional customers and six orders. `customers.custome
 
 **Expected result:** Settings are observed without changes. `read_only` is a server mode, not proof that your account cannot perform writes. See [MySQL system variables](https://dev.mysql.com/doc/refman/8.4/en/server-system-variables.html).
 
-## Task 9 — Locate and inspect the error log
+## Section: Locate and inspect the error log
 
 **Where:** `mysql>` for discovery, then Bash for reading logs.
 
@@ -416,13 +416,13 @@ The sample contains three fictional customers and six orders. `customers.custome
 
 **Expected result:** A bounded excerpt tied to the incident window. Missing entries do not establish absence of errors: destinations and filtering can vary. If access is denied, request the excerpt from the administrator rather than changing file permissions. See [MySQL error logging](https://dev.mysql.com/doc/refman/8.4/en/error-log.html).
 
-## Task 10 — Admin: configure a temporary slow-query capture
+## Section: Admin: configure a temporary slow-query capture
 
-**Where:** A dedicated administrative MySQL client on a training host. Keep this connection open through Task 12.
+**Where:** A dedicated administrative MySQL client on a training host. Keep this connection open through [Admin: restore the original logging settings](#section-admin-restore-the-original-logging-settings).
 
 This changes server configuration. Use a short, agreed capture window (for example, two minutes). Global changes require `SYSTEM_VARIABLES_ADMIN` or the applicable legacy administrative privilege. Logs consume disk and can contain SQL literals. Do not run this exercise as part of a read-only production check.
 
-1. Connect using the administrative method from Task 3. Save the original values in this connection:
+1. Connect using the administrative method from [Connect with the mysql client](#section-connect-with-the-mysql-client). Save the original values in this connection:
 
    ```sql
    SET @original_slow_query_log = @@GLOBAL.slow_query_log;
@@ -455,15 +455,15 @@ This changes server configuration. Use a short, agreed capture window (for examp
           @@GLOBAL.long_query_time, @@GLOBAL.slow_query_log_file;
    ```
 
-**Expected result:** Slow logging is on, output includes `FILE`, and the global threshold is one second. Existing application sessions may retain their previous threshold. If any change fails, restore any successful changes using Task 12.
+**Expected result:** Slow logging is on, output includes `FILE`, and the global threshold is one second. Existing application sessions may retain their previous threshold. If any change fails, restore any successful changes using [Admin: restore the original logging settings](#section-admin-restore-the-original-logging-settings).
 
 These runtime settings do not survive restart; this exercise does not use `SET PERSIST` or edit configuration files. Logging controls are documented in [MySQL log destinations](https://dev.mysql.com/doc/refman/8.4/en/log-destinations.html) and [system variables](https://dev.mysql.com/doc/refman/8.4/en/server-system-variables.html).
 
-## Task 11 — Verify and inspect slow-query evidence
+## Section: Verify and inspect slow-query evidence
 
 **Where:** A second, fresh diagnostic MySQL connection, then a Bash terminal. Leave the administrative connection open.
 
-1. Connect again using Task 3 and check the inherited settings:
+1. Connect again using [Connect with the mysql client](#section-connect-with-the-mysql-client) and check the inherited settings:
 
    ```sql
    SELECT @@SESSION.long_query_time, @@SESSION.min_examined_row_limit;
@@ -481,7 +481,7 @@ These runtime settings do not survive restart; this exercise does not use `SET P
 
    Expect order `1001`, status `paid`, amount `49.90`, and `slow_log_demo = 0` after about 1.2 seconds. The primary-key predicate limits the delay to one row; do not remove it. Closing this connection discards its session overrides. Do not loop the delay or increase application workload to manufacture slowness.
 
-3. In Bash, enter the absolute slow-log filename discovered in Task 10 and inspect its tail:
+3. In Bash, enter the absolute slow-log filename discovered in [Admin: configure a temporary slow-query capture](#section-admin-configure-a-temporary-slow-query-capture) and inspect its tail:
 
    ```bash
    read -r -p 'Absolute MySQL slow-log path: ' MYSQL_SLOW_LOG
@@ -500,11 +500,11 @@ These runtime settings do not survive restart; this exercise does not use `SET P
 
    `-t 5` limits displayed groups, not how much input is read. For large production logs, use an administrator-prepared bounded capture. If the utility is unavailable, use the raw excerpt and request the appropriate package separately.
 
-**If no record appears:** Confirm that the query completed, slow logging is still on, output includes `FILE`, the file is correct, and the session threshold and examined-row limit match the demonstration. Inspect the error log for write failures. Record missing evidence instead of repeatedly generating work. Always complete Task 12. See [MySQL slow query log](https://dev.mysql.com/doc/refman/8.4/en/slow-query-log.html) and [mysqldumpslow](https://dev.mysql.com/doc/refman/8.4/en/mysqldumpslow.html).
+**If no record appears:** Confirm that the query completed, slow logging is still on, output includes `FILE`, the file is correct, and the session threshold and examined-row limit match the demonstration. Inspect the error log for write failures. Record missing evidence instead of repeatedly generating work. Always complete [Admin: restore the original logging settings](#section-admin-restore-the-original-logging-settings). See [MySQL slow query log](https://dev.mysql.com/doc/refman/8.4/en/slow-query-log.html) and [mysqldumpslow](https://dev.mysql.com/doc/refman/8.4/en/mysqldumpslow.html).
 
-## Task 12 — Admin: restore the original logging settings
+## Section: Admin: restore the original logging settings
 
-**Where:** The same administrative MySQL connection used in Task 10.
+**Where:** The same administrative MySQL connection used in [Admin: configure a temporary slow-query capture](#section-admin-configure-a-temporary-slow-query-capture).
 
 1. Confirm your saved values still exist:
 
@@ -513,7 +513,7 @@ These runtime settings do not survive restart; this exercise does not use `SET P
           @original_long_query_time;
    ```
 
-   If any value is `NULL`, stop before the next block. Recover the exact values from the written Task 10 record and assign them to the corresponding user variables in this connection. Do not guess defaults.
+   If any value is `NULL`, stop before the next block. Recover the exact values from the written [Admin: configure a temporary slow-query capture](#section-admin-configure-a-temporary-slow-query-capture) record and assign them to the corresponding user variables in this connection. Do not guess defaults.
 
 2. Restore all three changed global settings:
 
@@ -537,7 +537,7 @@ These runtime settings do not survive restart; this exercise does not use `SET P
 
 **Expected result:** Original global configuration is restored even if capture failed. Keep collected logs under the host's retention policy; do not delete or truncate live logs as cleanup.
 
-## Task 13 — Run a safe read-only baseline and record findings
+## Section: Run a safe read-only baseline and record findings
 
 **Where:** Bash and a diagnostic MySQL connection. No service or logging changes are needed.
 
@@ -587,7 +587,7 @@ These runtime settings do not survive restart; this exercise does not use `SET P
 
    The sample has only six orders, so this aggregation is bounded by the known fixture size. Do not transfer an unrestricted aggregation to a large production table. The optimizer may choose a scan on such a tiny table even though an index exists; record `type`, `possible_keys`, `key`, and estimated `rows` rather than declaring an index fault. Use plain `EXPLAIN`, not `EXPLAIN ANALYZE`. Type `exit` when finished.
 
-4. Inspect the bounded error-log excerpt from Task 9 if available. Do not enable logging merely to complete a read-only baseline.
+4. Inspect the bounded error-log excerpt from [Locate and inspect the error log](#section-locate-and-inspect-the-error-log) if available. Do not enable logging merely to complete a read-only baseline.
 
 5. Write a brief report using the following fields:
 
@@ -600,7 +600,7 @@ These runtime settings do not survive restart; this exercise does not use `SET P
    | Capacity | Current/peak connections, limit, and counter differences if sampled. |
    | Logs | Actual destination, time window, relevant messages, or missing evidence. |
    | Conclusion | Observed facts, remaining uncertainty, and the next targeted check. |
-   | Changes | None for this baseline; if Tasks 10–12 ran separately, reference their change and restoration record. |
+   | Changes | None for this baseline; if the slow-query capture, verification, and restoration sections ran separately, reference their change and restoration record. |
 
 **Safe-check boundaries:** These examples inspect metadata, counters, and the six-row training dataset. Read-only SQL can still consume resources: avoid unbounded application-table scans, `SELECT ... FOR UPDATE`, and `EXPLAIN ANALYZE` (which executes the statement). Do not use `KILL`, writes, schema changes, `FLUSH`, global setting changes, or service restarts as part of this baseline. A successful `SELECT 1` proves this session can execute a trivial query; it does not prove application performance.
 
