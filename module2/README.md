@@ -27,3 +27,15 @@ Use the course repository root for commands unless the exercise changes director
 
 ## Completion
 Submit the deliverables listed in each required exercise. Keep passwords, private keys and unreviewed sensitive logs out of submissions. Distinguish synthetic evidence from live observations. The instructor scores evidence, diagnosis, recovery, automation and communication using the shared rubric.
+
+## Standalone guides and Bash reporting exercises
+
+These pairs provide step-by-step live procedures plus offline synthetic evidence. Each exercise teaches an executable reporting utility; a live database is optional for the fixture portion.
+
+| Topic | Guide | Exercise |
+|---|---|---|
+| MySQL slow queries and indexes | [Guide](../MYSQL_SLOW_QUERY_ANALYSIS.md) | [Exercise](../MYSQL_SLOW_QUERY_ANALYSIS_EXERCISE.md) |
+| MySQL contention and reliability | [Guide](../MYSQL_CONTENTION_RELIABILITY.md) | [Exercise](../MYSQL_CONTENTION_RELIABILITY_EXERCISE.md) |
+| SQL Server support diagnostics | [Guide](../MSSQL_SUPPORT_DIAGNOSTICS.md) | [Exercise](../MSSQL_SUPPORT_DIAGNOSTICS_EXERCISE.md) |
+| SQL Server blocking and plan regression | [Guide](../MSSQL_BLOCKING_PLAN_REGRESSION.md) | [Exercise](../MSSQL_BLOCKING_PLAN_REGRESSION_EXERCISE.md) |
+| Application/database correlation | [Guide](../APP_DB_CORRELATION.md) | [Exercise](../APP_DB_CORRELATION_EXERCISE.md) |

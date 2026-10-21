@@ -1,0 +1,5 @@
+request_id	start_utc	operation	http_status	http_ms	pool_ms	sql_ms	downstream_ms	other_ms	attempts	db_operation_id
+r100	2026-10-21T06:00:00Z	order_lookup	200	60	0	35	0	25	1	q100
+r101	2026-10-21T06:01:00Z	order_lookup	504	5000	4000	40	0	960	3	q101
+r102	2026-10-21T06:02:00Z	order_lookup	200	3000	0	2800	0	200	1	q102
+r103	2026-10-21T06:03:00Z	checkout	504	4500	0	40	4200	260	2	q103

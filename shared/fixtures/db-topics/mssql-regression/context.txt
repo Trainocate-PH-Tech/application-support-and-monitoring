@@ -1,0 +1,8 @@
+SYNTHETIC: blocking and plan regression are separate cases.
+Blocking: the session and wait snapshots describe a controlled write incident.
+Regression: release R18 at 2026-10-21T04:55:00Z; same query 17 and parameter 42.
+Both intervals return 1000 rows/call; 100 executions per interval.
+Plan 3: keyed access; plan 8: larger scan. These are summaries, not actual plan XML.
+Three regression snapshots have blocking_session_id=0; unobserved waits remain possible.
+Statistics timestamp, sampled rows, actual XML, and release SQL diff: NOT PROVIDED.
+Deployment proximity is a hypothesis, not proof of causation.

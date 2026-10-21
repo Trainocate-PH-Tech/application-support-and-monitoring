@@ -1,0 +1,5 @@
+db_operation_id	request_id	duration_ms	endpoint
+q100	r100	35	writer
+q101	r101	40	writer
+q102	r102	2800	writer
+q103	r103	40	writer

@@ -1,0 +1,18 @@
+# Time: 2026-10-21T01:02:00.000000Z
+# User@Host: mysql_demo_reader[mysql_demo_reader] @ localhost [] Id: 20
+# Query_time: 1.200000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 1
+use mysql_support_demo;
+SET timestamp=1792544520;
+SELECT order_id, status, total_amount, SLEEP(1.2) AS slow_log_demo FROM orders WHERE order_id = 1001;
+# Time: 2026-10-21T01:03:00.000000Z
+# User@Host: mysql_demo_reader[mysql_demo_reader] @ localhost [] Id: 21
+# Query_time: 10.000000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 1
+use mysql_support_demo;
+SET timestamp=1792544580;
+SELECT order_id, status, SLEEP(10) AS diagnostic_delay FROM orders WHERE order_id = 1001;
+# Time: 2026-10-21T01:04:00.000000Z
+# User@Host: mysql_demo_reader[mysql_demo_reader] @ localhost [] Id: 22
+# Query_time: 1.500000 Lock_time: 0.000100 Rows_sent: 3 Rows_examined: 6
+use mysql_support_demo;
+SET timestamp=1792544640;
+SELECT status, COUNT(*), SUM(total_amount) FROM orders GROUP BY status;

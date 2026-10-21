@@ -1,0 +1,3 @@
+job	step_id	run_status	message
+SupportLab-IntentionalFailure	1	0	Synthetic training job failure
+SupportLab-IntentionalFailure	0	0	The job failed at step 1

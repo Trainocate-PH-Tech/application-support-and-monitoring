@@ -1,0 +1,7 @@
+SYNTHETIC sequential, nonoverlapping duration buckets covering all attempts.
+Do not multiply total SQL time by attempts; it already includes all attempts.
+Pool incident r101: active=10 max=10 pending=8 at 06:01:00Z; duration is cumulative pool wait.
+Downstream incident r103: payment sandbox timed out; use health endpoint, never replay checkout.
+Release A7 at 05:50:00Z; no causal link established. All clocks are UTC in this fixture.
+Error count is requests with status >=400; not a count of unique affected users.
+Explicit db_operation_id/request_id pairs are normalized trace evidence, not native DB-log fields.

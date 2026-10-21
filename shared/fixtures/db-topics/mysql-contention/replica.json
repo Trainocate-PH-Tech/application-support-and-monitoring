@@ -1,0 +1,13 @@
+{
+  "provenance": "SYNTHETIC separate reporting-freshness incident",
+  "captured_at": "2026-10-21T03:05:00Z",
+  "primary_last_write": "2026-10-21T03:04:50Z",
+  "replica_last_visible_write": "2026-10-21T02:58:00Z",
+  "report_route": "replica",
+  "Replica_IO_Running": "Yes",
+  "Replica_SQL_Running": "No",
+  "Seconds_Behind_Source": null,
+  "Last_SQL_Errno": 1062,
+  "Last_SQL_Error": "Duplicate entry for synthetic training key",
+  "Relay_Log_File": "replica-relay-bin.000012"
+}

@@ -1,0 +1,2 @@
+SYNTHETIC teaching evidence: mysql-slow. UTC timestamps. Not collected from EC2.
+Only files in this directory belong to this case. Live results may differ.

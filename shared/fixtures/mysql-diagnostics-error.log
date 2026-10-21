@@ -1,0 +1,8 @@
+2026-10-21T01:00:00.000000Z 0 [System] [MY-010116] [Server] mysqld starting as process 1200
+2026-10-21T01:00:01.000000Z 0 [System] [MY-010931] [Server] ready for connections. Port: 3306
+2026-10-21T01:02:00.000000Z 12 [Warning] [MY-010914] [Server] Aborted connection 12 to db: 'mysql_support_demo'
+2026-10-21T01:03:00.000000Z 13 [Warning] [MY-010926] [Server] Access denied for user 'demo_unknown'@'localhost'
+2026-10-21T01:04:00.000000Z 14 [ERROR] [MY-000000] [Server] Too many connections (synthetic exercise event)
+2026-10-21T01:05:00.000000Z 0 [ERROR] [MY-000000] [Server] Failed to open slow log file (synthetic exercise event)
+2026-10-21T01:06:00.000000Z 0 [System] [MY-000000] [Server] Administrator corrected training log path
+2026-10-21T01:07:00.000000Z 0 [System] [MY-000000] [Server] Training observation window ended

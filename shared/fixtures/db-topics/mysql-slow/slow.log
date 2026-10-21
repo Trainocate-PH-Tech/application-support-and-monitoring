@@ -1,0 +1,24 @@
+# Time: 2026-10-21T02:00:00.000000Z
+# User@Host: demo[demo] @ localhost [] Id: 20
+# Query_time: 1.200000 Lock_time: 0.000100 Rows_sent: 1 Rows_examined: 100000
+use mysql_support_demo;
+SET timestamp=1792548000;
+SELECT SUM(amount) FROM analysis_orders WHERE customer_id=42;
+# Time: 2026-10-21T02:00:01.000000Z
+# User@Host: demo[demo] @ localhost [] Id: 21
+# Query_time: 1.300000 Lock_time: 0.000100 Rows_sent: 1 Rows_examined: 100000
+use mysql_support_demo;
+SET timestamp=1792548001;
+SELECT SUM(amount) FROM analysis_orders WHERE customer_id=43;
+# Time: 2026-10-21T02:00:02.000000Z
+# User@Host: demo[demo] @ localhost [] Id: 22
+# Query_time: 1.100000 Lock_time: 0.000100 Rows_sent: 1 Rows_examined: 100000
+use mysql_support_demo;
+SET timestamp=1792548002;
+SELECT SUM(amount) FROM analysis_orders WHERE customer_id=44;
+# Time: 2026-10-21T02:00:03.000000Z
+# User@Host: demo[demo] @ localhost [] Id: 23
+# Query_time: 3.000000 Lock_time: 0.000100 Rows_sent: 1 Rows_examined: 0
+use mysql_support_demo;
+SET timestamp=1792548003;
+SELECT SLEEP(3);

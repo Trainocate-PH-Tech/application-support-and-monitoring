@@ -1,0 +1,3 @@
+query_id	executions	total_elapsed_us	total_cpu_us	total_reads
+17	100	80000000	50000000	2000000
+18	2	4000000	2000000	200

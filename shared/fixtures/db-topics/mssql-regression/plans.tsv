@@ -1,0 +1,4 @@
+interval_utc	query_id	plan_id	executions	avg_duration_us	avg_cpu_us	avg_reads
+2026-10-21T04:00:00Z	17	3	80	50000	20000	200
+2026-10-21T04:00:00Z	17	3	20	100000	30000	300
+2026-10-21T05:00:00Z	17	8	100	900000	510000	21000

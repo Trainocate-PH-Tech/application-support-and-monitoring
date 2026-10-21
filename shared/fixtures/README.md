@@ -10,3 +10,7 @@ All records in this folder are authored teaching data, not logs collected from c
 - correlation.csv: synthetic pooled application, unlike the simple live app.
 - platform-incidents.md: DNS/TLS/SELinux/IIS and high-CPU evidence cards.
 - support-fixtures.tar.gz: starter files for Linux command practice; no executable payloads.
+
+## Standalone topic evidence
+
+[db-topics](db-topics/README.md) contains five independently labeled synthetic cases for the root-level guide/exercise pairs. Do not join them with the older fixtures above.

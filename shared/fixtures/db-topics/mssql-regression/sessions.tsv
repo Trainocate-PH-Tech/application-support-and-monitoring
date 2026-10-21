@@ -1,0 +1,4 @@
+session_id	blocking_session_id	status	open_transactions
+61	0	sleeping	1
+62	61	suspended	1
+63	62	suspended	1

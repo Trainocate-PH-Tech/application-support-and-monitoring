@@ -1,0 +1,6 @@
+SYNTHETIC abbreviated InnoDB evidence, captured 2026-10-21T02:10:00Z
+LATEST DETECTED DEADLOCK
+Transaction 501: session 41 held order 1001; requested order 1002.
+Transaction 502: session 42 held order 1002; requested order 1001.
+WE ROLL BACK TRANSACTION (2)
+This is historical evidence; current waits are a separate snapshot.
