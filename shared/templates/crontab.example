@@ -1,0 +1,6 @@
+# Replace /home/learner01 with the actual learner home. Create bin/logs first.
+SHELL=/bin/bash
+PATH=/usr/bin:/bin
+*/5 * * * * /usr/bin/flock -n /home/learner01/support-lab/health.lock /home/learner01/support-lab/bin/health-check.sh >> /home/learner01/support-lab/logs/health.log 2>&1
+# Retention starts as a reviewed dry-run, not automatic deletion.
+15 2 * * * /home/learner01/support-lab/bin/retention.sh --dry-run >> /home/learner01/support-lab/logs/retention.log 2>&1

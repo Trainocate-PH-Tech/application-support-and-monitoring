@@ -1,0 +1,852 @@
+{
+  "1": [
+    {
+      "slug": "01-access-users",
+      "title": "Access, identity and user creation",
+      "minutes": 40,
+      "scenario": "You are the new support team. Establish individual identities before changing the shared loyalty server.",
+      "concepts": [
+        "The SSH key authenticates a login; it does not make the login root.",
+        "A user, primary group, supplementary groups and home-directory permissions are separate controls.",
+        "Use sudo only for the supervised administrative step; keep routine investigation unprivileged."
+      ],
+      "steps": [
+        "Generate your own SSH key",
+        "Open the instructor session",
+        "Create the learner and team",
+        "Install the public key",
+        "Connect with your own account",
+        "Create private evidence and confirm access",
+        "Perform the second-user check",
+        "Transfer the method without copying"
+      ],
+      "commands": "ssh-keygen -t ed25519 -f \"$HOME/.ssh/support_lab_ed25519\"\ncat \"$HOME/.ssh/support_lab_ed25519.pub\"\n\nchmod 600 okada.pem\nssh -i okada.pem ubuntu@47.131.221.162\nwhoami\nid\nhostname\ndate -u +%FT%TZ\n\nread -r -p 'Assigned learner name: ' learner\nread -r -p 'Assigned team group: ' team\nsudo adduser --disabled-password --gecos '' \"$learner\"\nsudo groupadd -f \"$team\"\nsudo usermod -aG \"$team\" \"$learner\"\nsudo chmod 750 \"/home/$learner\"\nsudo install -d -m 700 -o \"$learner\" -g \"$learner\" \"/home/$learner/.ssh\"\n\nread -r -p 'Learner PUBLIC key (one line): ' learner_public_key\nprintf '%s\\n' \"$learner_public_key\" | sudo tee \"/home/$learner/.ssh/authorized_keys\" >/dev/null\nsudo chown \"$learner:$learner\" \"/home/$learner/.ssh/authorized_keys\"\nsudo chmod 600 \"/home/$learner/.ssh/authorized_keys\"\nsudo stat -c '%U %G %a %n' \"/home/$learner/.ssh\" \"/home/$learner/.ssh/authorized_keys\"\n\nread -r -p 'Your assigned learner account: ' learner\nssh -i \"$HOME/.ssh/support_lab_ed25519\" \"$learner@47.131.221.162\"\nwhoami\nid\nprintf 'HOME=%s\\n' \"$HOME\"\n\nmkdir -p ~/support-lab/evidence/m1-01\numask 077\nprintf 'private lab note\\n' > ~/support-lab/private.txt\nstat -c '%U %G %a %n' ~/support-lab/private.txt\nid > ~/support-lab/evidence/m1-01/identity.txt\ndate -u +%FT%TZ >> ~/support-lab/evidence/m1-01/identity.txt\n\nread -r -p 'A different learner account: ' other\nsudo -u \"$other\" cat \"/home/$learner/support-lab/private.txt\"",
+      "checks": [
+        "Learner logs in using their own key and has a writable home.",
+        "Private file has mode 600; team membership appears after a new login."
+      ],
+      "tricks": [
+        "Does a # character inside a command prove you are root?",
+        "Why might id in an old shell omit a newly granted group?",
+        "Does chmod 777 fix a missing filesystem quota?"
+      ],
+      "answer": "Use id -u to establish identity. A new login refreshes supplementary groups. Directory traversal requires execute permission; read permission alone is insufficient. chmod changes access, not capacity. Keep ~/.ssh owned by its account and never place a private key in the course repository.",
+      "output": "Identity baseline, permission evidence and a short access checklist."
+    },
+    {
+      "slug": "02-files-packages",
+      "title": "Navigation, files and package installation",
+      "minutes": 60,
+      "scenario": "A deployment arrives as an archive. Find the right directory, inspect it, copy it safely and install diagnostic tools.",
+      "concepts": [
+        "Absolute paths start at /; relative paths start at the current working directory.",
+        "Quote paths and distinguish copying a file from overwriting an existing destination.",
+        "apt is the Ubuntu package manager; dnf examples are Red Hat comparisons, not commands for this host."
+      ],
+      "steps": [
+        "Create and navigate your workspace",
+        "Create, copy and rename a file",
+        "Inspect packages and command lookup",
+        "Check the tools as a learner",
+        "Compress a copy and observe a broken link",
+        "Transfer the method without copying"
+      ],
+      "commands": "mkdir -p ~/support-lab/files-practice/{incoming,work,archive}\ncd ~/support-lab/files-practice\npwd\nls -lah\ncd /var/log\npwd\ncd -\n\nprintf 'alpha\\nbeta\\n' > 'incoming/status report.txt'\ncp -i -- 'incoming/status report.txt' work/\nmv -- 'work/status report.txt' work/status.txt\nhead -n 1 work/status.txt\nln -s status.txt work/latest\nls -l work\nreadlink work/latest\n\nsudo apt-get update\napt-cache search '^lsof$'\nsudo apt-get install -y curl netcat-openbsd dnsutils lsof sysstat\ndpkg-query -S /usr/bin/lsof\n\ncd \"$COURSE_ROOT\"\nprintf '%s\\n' \"$PATH\"\ncommand -v curl nc dig lsof pidstat\ntar -tzf shared/fixtures/support-fixtures.tar.gz\nmkdir -p ~/support-lab/fixtures\ntar -xzf shared/fixtures/support-fixtures.tar.gz -C ~/support-lab/fixtures\n\nprintf 'compress me\\n' > ~/support-lab/files-practice/work/compression.txt\ngzip -k ~/support-lab/files-practice/work/compression.txt\ngzip -dc ~/support-lab/files-practice/work/compression.txt.gz\nrm -i -- ~/support-lab/files-practice/work/status.txt\nls -l ~/support-lab/files-practice/work/latest\ncat ~/support-lab/files-practice/work/latest",
+      "checks": [
+        "Student explains why the symlink breaks after its target is removed.",
+        "Commands are found through PATH; package installation is verified rather than assumed."
+      ],
+      "tricks": [
+        "Does cd /var/log change another terminal\u2019s working directory?",
+        "Why is sudo echo text > /root/file different from echo text | sudo tee /root/file?",
+        "What happens when an unquoted variable contains spaces?"
+      ],
+      "answer": "The shell performs redirection before sudo runs echo. Use a deliberately approved destination and sudo tee when needed. cd changes the current process environment. A symlink stores a path and does not keep its target alive. Use -- before filenames when the tool supports it.",
+      "output": "A directory tree, package verification table and safe file-handling notes."
+    },
+    {
+      "slug": "03-storage",
+      "title": "Allocate space and diagnose disk limits",
+      "minutes": 45,
+      "scenario": "A learner reports \u201cmy EC2 user is capped.\u201d Determine which layer is limiting writes before selecting a fix.",
+      "concepts": [
+        "EBS volume \u2192 partition \u2192 filesystem \u2192 directory/account; growing one layer does not automatically grow all layers.",
+        "Compare byte capacity, inode capacity, quotas, permissions and deleted-open files.",
+        "The observed host already has an expanded root filesystem; reproduce growth on a disposable disk."
+      ],
+      "steps": [
+        "Record the actual limiting layer",
+        "Inspect privileged storage evidence",
+        "Create the disposable partition lab",
+        "Grow and compare capacity",
+        "Observe quota allocation; compare additional storage symptoms",
+        "Explain the real EBS sequence",
+        "Choose the limiting layer independently",
+        "Transfer the method without copying"
+      ],
+      "commands": "id\nlsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS\nfindmnt -T \"$HOME\"\ndf -hT \"$HOME\"\ndf -i \"$HOME\"\nquota -s\n\nsudo repquota -a\nsudo lsof +L1\n\ncd \"$COURSE_ROOT\"\nless shared/scripts/storage-lab.sh\nsudo shared/scripts/storage-lab.sh create\nsudo lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS\nsudo df -hT /var/lib/support-storage-lab/mount\n\nsudo shared/scripts/storage-lab.sh grow\nsudo lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS\nsudo df -hT /var/lib/support-storage-lab/mount\n\nsudo shared/scripts/storage-lab.sh cleanup",
+      "checks": [
+        "Student identifies the limiting layer from evidence, not the wording of the complaint.",
+        "Disposable filesystem grows and can be cleaned up; root partition is untouched."
+      ],
+      "tricks": [
+        "df says full but du is small: name three explanations.",
+        "Will adding a user allocate a new partition?",
+        "Why can root sometimes write when an ordinary user cannot, even without quotas?"
+      ],
+      "answer": "Possible causes include deleted-open files, hidden data under mounts, inaccessible paths during du, reserved ext4 blocks, inode exhaustion, quotas, or permissions. Normal user creation does not create a per-user EBS disk. Show inode and quota evidence before diagnosing a cap. EBS growth requires appropriate AWS access and a snapshot; grow the partition only if present, then the matching filesystem.",
+      "output": "A storage decision tree and before/after capacity evidence."
+    },
+    {
+      "slug": "04-command-investigations",
+      "title": "Command investigations and first Bash script",
+      "minutes": 75,
+      "scenario": "Operations received mixed logs and filenames. Produce accurate incident counts without losing records or matching misleading text.",
+      "concepts": [
+        "grep selects lines; awk interprets fields; sed transforms text; each has different quoting rules.",
+        "Sort before uniq, choose numeric sorting for numbers and preserve filenames with NUL separators.",
+        "Counts require a clear unit: lines, requests, users and incidents are not interchangeable.",
+        "Create and execute a small Bash evidence collector before the incident challenge."
+      ],
+      "steps": [
+        "Inspect the evidence without editing it",
+        "Compare a naive search with parsed status",
+        "Extract and transform fields",
+        "Handle unusual filenames safely",
+        "Observe an expected nonzero pipeline result",
+        "Build your first evidence script",
+        "Inspect and execute your saved script",
+        "Change the input, then choose your own check",
+        "Transfer the method without copying"
+      ],
+      "commands": "cd ~/support-lab/fixtures\nless application.log\nhead -n 4 application.log\ntail -n 4 application.log\nwc -l application.log\n\ngrep -n ERROR application.log\ngrep -n 'status=5[0-9][0-9]' application.log\nawk '{for(i=1;i<=NF;i++) if($i ~ /^path=/) print $i}' application.log | sort | uniq -c | sort -nr\n\ntail -n +2 latency.csv | cut -d, -f2 | sort -n\nsed -n '2,6p' application.log\nprintf 'seen\\n' | tee ~/support-lab/evidence/m1-04/pipeline.txt\ndate -u +%FT%TZ\n\nfind filenames -type f -print0 | xargs -0 -r wc -c\nmkdir -p ~/support-lab/archive\nfind filenames -type f -print0 | tar --null -T - -czf ~/support-lab/archive/selected.tar.gz\nverify_dir=$(mktemp -d \"$HOME/support-lab/archive/verify-XXXXXX\")\ntar -xzf ~/support-lab/archive/selected.tar.gz -C \"$verify_dir\"\ndiff -r filenames \"$verify_dir/filenames\"\n\nprevious_pipefail=$(set +o | grep pipefail)\nset -o pipefail\ngrep 'NO_SUCH_REQUEST' application.log | wc -l\npipeline_rc=$?\nprintf 'pipeline_exit=%s\\n' \"$pipeline_rc\"\neval \"$previous_pipefail\"\n\nmkdir -p \"$HOME/support-lab/bin\"\nif [[ -e \"$HOME/support-lab/bin/triage.sh\" ]]; then\n    printf 'Keep existing triage.sh; inspect it before editing.\\n'\nelse\n    cat > \"$HOME/support-lab/bin/triage.sh\" <<'SCRIPT'\n#!/usr/bin/env bash\nset -u\nservice=${1:-support-tomcat}\nprintf 'UTC=%s service=%s\\n' \"$(date -u +%FT%TZ)\" \"$service\"\ndf -h \"$HOME\"\nsystemctl is-active \"$service\"\nservice_rc=$?\nprintf 'service_exit=%s\\n' \"$service_rc\"\nSCRIPT\nfi\nbash -n \"$HOME/support-lab/bin/triage.sh\" && chmod 750 \"$HOME/support-lab/bin/triage.sh\"\n\"$HOME/support-lab/bin/triage.sh\" > \"$HOME/support-lab/evidence/m1-04/first-script.txt\"\ncat \"$HOME/support-lab/evidence/m1-04/first-script.txt\"\n\ncat \"$HOME/support-lab/bin/triage.sh\"\nif bash -n \"$HOME/support-lab/bin/triage.sh\"; then\n    cd \"$HOME\"\n    ./support-lab/bin/triage.sh support-tomcat\n    printf 'collector_exit=%s\\n' \"$?\"\nfi",
+      "checks": [
+        "Counts match parsed fixture records; malformed rows are reported separately.",
+        "All unusual filenames survive the archive round trip.",
+        "Run triage.sh with two service arguments and explain the captured statuses."
+      ],
+      "tricks": [
+        "Does grep returning 1 always mean an error?",
+        "Will uniq find nonadjacent duplicates?",
+        "Can cut reliably parse arbitrary CSV with quoted commas?"
+      ],
+      "answer": "grep exits 1 for no matches, 2 for an error. uniq removes adjacent duplicates only. Basic cut is not a full CSV parser. A pipeline usually reports its last command status; pipefail changes this. Use NUL separators for arbitrary filenames. The fixture contains six valid requests, two 5xx errors, two slow requests at >=1000 ms, and one malformed row.",
+      "output": "Pipelines, archive check and triage.sh with two-input test evidence."
+    },
+    {
+      "slug": "05-install-stack",
+      "title": "Install and inspect the application stack",
+      "minutes": 50,
+      "scenario": "Deploy the loyalty application, establish a healthy baseline and understand the service before introducing failures.",
+      "concepts": [
+        "A Java runtime, servlet container, database and application configuration are separate dependencies.",
+        "systemd unit configuration defines process identity, environment, startup and restart behavior.",
+        "A live process is weaker evidence than an authenticated business request."
+      ],
+      "steps": [
+        "Inspect the setup stages",
+        "Install the shared stack",
+        "Repair a copied service configuration",
+        "Inspect service identity and logs",
+        "Verify readiness and business data",
+        "Open a browser through SSH forwarding",
+        "Transfer the method without copying"
+      ],
+      "commands": "cd \"$COURSE_ROOT\"\nless shared/scripts/setup-ubuntu.sh\nshared/scripts/preflight.sh\n\nsudo shared/scripts/setup-ubuntu.sh --training-host\nsetup_rc=$?\nprintf 'setup_exit=%s\\n' \"$setup_rc\"\n\npractice_dir=$(mktemp -d \"$HOME/support-lab/unit-practice-XXXXXX\")\ncp \"$COURSE_ROOT/shared/templates/service-practice.service\" \"$practice_dir/support-tomcat.service\"\nsystemctl cat support-tomcat\nnano \"$practice_dir/support-tomcat.service\"\ncat \"$practice_dir/support-tomcat.service\"\n\nsystemctl cat support-tomcat\nsystemctl status support-tomcat --no-pager\njournalctl -u support-tomcat --since '10 minutes ago' --utc --no-pager\nss -lnt\n\ncurl -i http://127.0.0.1:8080/loyalty/live\ncurl -i http://127.0.0.1:8080/loyalty/health\ncurl -i 'http://127.0.0.1:8080/loyalty/player?id=1'\ncurl -i http://127.0.0.1:8080/loyalty/report\n\nread -r -p 'Assigned learner account: ' learner\nssh -N -L 18080:127.0.0.1:8080 -i \"$HOME/.ssh/support_lab_ed25519\" \"$learner@47.131.221.162\"",
+      "checks": [
+        "Readiness returns 200 and player 1 returns synthetic data.",
+        "Student explains why Tomcat runs as supportapp and MySQL is not exposed publicly."
+      ],
+      "tricks": [
+        "Does systemctl enable start a stopped service?",
+        "Can /live return 200 while the database password is wrong?",
+        "Why should you collect the journal before restart?"
+      ],
+      "answer": "enable configures boot behavior; --now also starts. /live intentionally avoids the database. /health opens a connection and executes SELECT 1. Restart can destroy transient evidence and temporarily hide a fault. systemctl cat reveals drop-ins as well as the main unit.",
+      "output": "A component diagram and a healthy baseline evidence bundle."
+    },
+    {
+      "slug": "06-service-log-triage",
+      "title": "Service failures and application log diagnosis",
+      "minutes": 35,
+      "scenario": "The application worked before a change. One team investigates a startup fault; another receives a permission fault after reset.",
+      "concepts": [
+        "Capture unit state, exit status and journal before changing configuration.",
+        "Correlate an HTTP response request ID with its application log line.",
+        "Distinguish startup failure, runtime failure and failed dependency checks."
+      ],
+      "steps": [
+        "Capture the healthy baseline",
+        "Introduce and observe a startup fault",
+        "Locate the failing startup configuration",
+        "Reset, then introduce a different failure",
+        "Inspect runtime symptoms and file access",
+        "Verify permissions, restore and retest",
+        "Transfer the method without copying"
+      ],
+      "commands": "date -u +%FT%TZ\ncurl -i http://127.0.0.1:8080/loyalty/health\n\ncd \"$COURSE_ROOT\"\nsudo shared/scripts/fault.sh startup\n\nsystemctl status support-tomcat --no-pager\nsystemctl cat support-tomcat\njournalctl -u support-tomcat -n 60 --utc --no-pager\n\nsudo shared/scripts/fault.sh reset\ncurl --fail -i http://127.0.0.1:8080/loyalty/health && sudo shared/scripts/fault.sh permissions\n\ncurl -i http://127.0.0.1:8080/loyalty/health\njournalctl -u support-tomcat --since '5 minutes ago' --utc --no-pager\n\nsudo namei -l /etc/support-lab/app.properties\nsudo stat -c '%U %G %a %n' /etc/support-lab/app.properties\nsudo shared/scripts/fault.sh reset\ncurl -i http://127.0.0.1:8080/loyalty/health\ncurl -i 'http://127.0.0.1:8080/loyalty/player?id=1'",
+      "checks": [
+        "Evidence names the actual failed executable or unreadable file.",
+        "Recovery includes HTTP and business checks, not only active service status."
+      ],
+      "tricks": [
+        "Does a restart policy repair a bad executable path?",
+        "Does a missing ERROR line prove the service started?",
+        "Why is chmod 777 an inappropriate application-config fix?"
+      ],
+      "answer": "The startup drop-in overrides ExecStart; inspect both unit and drop-in. The permissions fault leaves root owning a mode-600 config, so supportapp cannot read it. Correct access is root:supportapp mode 640. Repeated restarts cannot fix either cause. Preserve the failure evidence before using reset.",
+      "output": "A timeline with failing and recovered request IDs."
+    },
+    {
+      "slug": "07-resources-network",
+      "title": "Resource and network troubleshooting",
+      "minutes": 25,
+      "scenario": "Users report intermittent errors. Determine whether CPU, memory, DNS, TCP, TLS or database authentication evidence supports the complaint.",
+      "concepts": [
+        "High load is not the same measurement as CPU utilization; memory available differs from free.",
+        "A listening port and successful TCP connection do not prove database authentication.",
+        "Ubuntu firewall checks differ from Red Hat SELinux indicators; do not disable controls as a diagnostic shortcut."
+      ],
+      "steps": [
+        "Measure resources over an interval",
+        "Observe bounded CPU and file handles",
+        "Test network layers in order",
+        "Compare TCP with authenticated readiness",
+        "Analyze platform evidence",
+        "Transfer the method without copying"
+      ],
+      "commands": "uptime\nfree -h\nps -eo pid,ppid,user,comm,pcpu,pmem --sort=-pcpu | head\ntop -b -n 1 | head -n 20\npidstat 1 3\n\ntimeout 15s bash -c 'while :; do :; done' &\nworker_pid=$!\nsudo lsof -p \"$(systemctl show -p MainPID --value support-tomcat)\" | head\nwait \"$worker_pid\"\nworker_rc=$?\nprintf 'worker_exit=%s\\n' \"$worker_rc\"\n\ngetent hosts localhost\ndig localhost\nnslookup localhost\nping -c 2 127.0.0.1\ntraceroute -m 3 127.0.0.1\nss -lnt\nnc -vz -w 2 127.0.0.1 3306\ncurl --max-time 5 -i http://127.0.0.1:8080/loyalty/health\n\nsudo shared/scripts/fault.sh db-auth\nnc -vz -w 2 127.0.0.1 3306\ncurl -i http://127.0.0.1:8080/loyalty/health\nsudo shared/scripts/fault.sh reset",
+      "checks": [
+        "Student differentiates TCP reachability from successful authenticated queries.",
+        "Diagnosis cites interval evidence and acknowledges ICMP/filtering limitations."
+      ],
+      "tricks": [
+        "Does failed ping prove the host is down?",
+        "Is low free memory alone proof of memory pressure?",
+        "Does curl -k repair an expired certificate?"
+      ],
+      "answer": "ICMP can be blocked while TCP works. Inspect available memory, swap/OOM evidence and workload behavior. curl -k bypasses validation and does not repair certificates. A MySQL listener can accept TCP while rejecting credentials. Red Hat AVC evidence requires policy/path investigation; do not teach disabling SELinux as the fix.",
+      "output": "A layered connectivity table with evidence and remaining unknowns."
+    },
+    {
+      "slug": "08-first-script-capstone",
+      "title": "Linux incident challenge with your evidence script",
+      "minutes": 40,
+      "scenario": "A deployment left the loyalty application unavailable. Your team has 25 minutes to identify the fault and deliver a reusable evidence collector.",
+      "concepts": [
+        "Build a small script from understood commands, then test failure behavior.",
+        "Record command failures without losing the rest of the incident evidence.",
+        "A recovery claim needs a customer-facing check and a clear incident summary."
+      ],
+      "steps": [
+        "Prepare your submission workspace",
+        "Extend your existing evidence script",
+        "Receive the incident and assign roles",
+        "Investigate within the time budget",
+        "Collect and inspect evidence",
+        "Propose one mitigation and define recovery",
+        "Verify and hand over"
+      ],
+      "commands": "cp -i \"$COURSE_ROOT/shared/templates/incident-report.md\" \"$HOME/support-lab/evidence/m1-08/incident.md\"\ndate -u +%FT%TZ\nnano \"$HOME/support-lab/evidence/m1-08/incident.md\"\n\ncp -p \"$HOME/support-lab/bin/triage.sh\" \"$(mktemp \"$HOME/support-lab/bin/triage-backup-XXXXXX\")\"\nnano \"$HOME/support-lab/bin/triage.sh\"\nbash -n \"$HOME/support-lab/bin/triage.sh\" && \"$HOME/support-lab/bin/triage.sh\"\n\ncd \"$COURSE_ROOT\"\nshared/scripts/collect-evidence.sh \"$HOME/support-lab/evidence/m1-08/bundles\" '20 minutes ago'\ncollector_rc=$?\nprintf 'collector_exit=%s\\n' \"$collector_rc\"",
+      "checks": [
+        "Script runs without interactive input and records UTC timestamps.",
+        "Incident report includes evidence, probable cause, mitigation and recovery validation."
+      ],
+      "tricks": [
+        "Why can an evidence collector legitimately exit nonzero and still produce a useful bundle?",
+        "Does chmod +x guarantee a script will run on every shell?"
+      ],
+      "answer": "A partial bundle may contain a failed service-status check or a permission-denied log capture. Record those statuses instead of suppressing them. The interpreter in the shebang must exist; use Bash explicitly for Bash syntax. Grade reasoning and verified recovery above speed.",
+      "output": "Executable triage script, checklist, evidence bundle and incident report."
+    },
+    {
+      "slug": "09-command-challenge-bank",
+      "title": "Advanced Linux command challenge bank",
+      "minutes": "Extension",
+      "scenario": "You must produce defensible answers from awkward input without changing source evidence.",
+      "concepts": [
+        "Predict command behavior before running it.",
+        "Preserve evidence and explain assumptions about input format.",
+        "Robust pipelines handle empty input, malformed records and unusual filenames."
+      ],
+      "steps": [
+        "Create an isolated challenge workspace",
+        "Prepare an answer notebook",
+        "Solve and test counterexamples",
+        "Review with another learner"
+      ],
+      "commands": "mkdir -p ~/support-lab/challenges\nchallenge_dir=$(mktemp -d \"$HOME/support-lab/challenges/commands-XXXXXX\")\ncp -a \"$COURSE_ROOT/shared/fixtures/.\" \"$challenge_dir/\"\ncd \"$challenge_dir\"\npwd",
+      "checks": [
+        "Each answer includes an explanation and a counterexample where appropriate.",
+        "No command mutates original evidence or uses blanket deletion."
+      ],
+      "tricks": [
+        "Is line count always record count?",
+        "When does tail -f miss a replacement log file?",
+        "Can grep ERROR count HTTP failures accurately?"
+      ],
+      "answer": "Use tail -F for following a filename across rotation when appropriate. wc -l counts newline characters. Parse explicit status fields rather than unstructured words. See instructor command-answer key for all 18 explanations.",
+      "output": "A reviewed command notebook; extensions do not displace required class activities."
+    }
+  ],
+  "2": [
+    {
+      "slug": "01-db-baseline",
+      "title": "Database baseline and safe access",
+      "minutes": 35,
+      "scenario": "The application reports database errors. Establish engine, endpoint, identity and connectivity before tuning anything.",
+      "concepts": [
+        "Use a protected client option file instead of putting passwords in command arguments.",
+        "Read-only application rights differ from administrative diagnostic permissions.",
+        "Capture UTC time, engine version and connection counts with every baseline."
+      ],
+      "steps": [
+        "Create a protected client configuration",
+        "Enter the client settings",
+        "Run the bounded health check",
+        "Enter MySQL and identify the session",
+        "Capture a read-only baseline",
+        "Inspect service and full diagnostics",
+        "Transfer the method without copying"
+      ],
+      "commands": "umask 077\ntouch \"$HOME/.support-lab.cnf\"\nchmod 600 \"$HOME/.support-lab.cnf\"\nnano \"$HOME/.support-lab.cnf\"\n\n[client]\nuser=YOUR_ASSIGNED_TEAM_LOGIN\npassword=YOUR_PRIVATE_PASSWORD\nhost=localhost\n\nstat -c '%a %n' \"$HOME/.support-lab.cnf\"\ncd \"$COURSE_ROOT\"\nMYSQL_CNF=\"$HOME/.support-lab.cnf\" shared/scripts/db-health.sh\ncheck_rc=$?\nprintf 'db_health_exit=%s\\n' \"$check_rc\"\n\nmysql --defaults-extra-file=\"$HOME/.support-lab.cnf\"\n\nSELECT UTC_TIMESTAMP(), CURRENT_USER(), VERSION();\nSHOW FULL PROCESSLIST;\nSHOW GLOBAL STATUS LIKE 'Threads_connected';\nSHOW VARIABLES LIKE 'max_connections';\nSHOW VARIABLES LIKE 'log_error';\nexit\n\ncd \"$COURSE_ROOT\"\nsystemctl status mysql --no-pager\njournalctl -u mysql --since '15 minutes ago' --utc --no-pager\nmysql --defaults-extra-file=\"$HOME/.support-lab.cnf\" < shared/sql/mysql/diagnostics.sql",
+      "checks": [
+        "Baseline identifies endpoint and effective database user.",
+        "Learner distinguishes access denied from server unreachable."
+      ],
+      "tricks": [
+        "Can a successful SELECT 1 prove every business query is fast?",
+        "Does SHOW PROCESSLIST necessarily show all users to an unprivileged login?"
+      ],
+      "answer": "SELECT 1 checks a narrow path. PROCESS privilege controls visibility of other sessions; missing privileges can hide incident evidence. Do not distribute the application account password to learners. Use per-team diagnostic accounts and instructor-controlled writes.",
+      "output": "A database baseline and a protected client configuration, never submitted with its password."
+    },
+    {
+      "slug": "02-mysql-slow",
+      "title": "MySQL slow-query capture and ranking",
+      "minutes": 40,
+      "scenario": "Player reports are slow. Capture an intentional slow query and rank work by both frequency and total time.",
+      "concepts": [
+        "Slow logging is a configuration change and must be restored after the exercise.",
+        "Global long_query_time becomes the default for new sessions; existing sessions may retain their value.",
+        "Frequency, total time, rows examined and lock time answer different questions."
+      ],
+      "steps": [
+        "Record the original logging configuration",
+        "Enable a short capture window",
+        "Open a fresh learner connection",
+        "Create bounded slow-query evidence",
+        "Inspect the capture and rank the fixture",
+        "Restore the exact original values",
+        "Transfer the method without copying"
+      ],
+      "commands": "SET @saved_slow = @@GLOBAL.slow_query_log;\nSET @saved_threshold = @@GLOBAL.long_query_time;\nSET @saved_output = @@GLOBAL.log_output;\nSELECT @saved_slow, @saved_threshold, @saved_output;\nSHOW GLOBAL VARIABLES LIKE 'slow_query_log_file';\n\nSET GLOBAL log_output = 'FILE';\nSET GLOBAL slow_query_log = ON;\nSET GLOBAL long_query_time = 0.2;\n\nmysql --defaults-extra-file=\"$HOME/.support-lab.cnf\"\n\nSET SESSION long_query_time = 0.2;\nSELECT SLEEP(0.3);\nSELECT COUNT(*), SUM(amount) FROM support_lab.transactions WHERE player_id=42;\nexit\n\ncd \"$COURSE_ROOT\"\nmysqldumpslow -s t -t 5 shared/fixtures/mysql-slow.log\nmysqldumpslow -s c -t 5 shared/fixtures/mysql-slow.log\n\nSET GLOBAL slow_query_log = @saved_slow;\nSET GLOBAL long_query_time = @saved_threshold;\nSET GLOBAL log_output = @saved_output;\nSELECT @@GLOBAL.slow_query_log, @@GLOBAL.long_query_time, @@GLOBAL.log_output;",
+      "checks": [
+        "Slow record appears with query time, lock time and row counts.",
+        "Report explains why a frequent moderate query may cost more overall than one rare slow query."
+      ],
+      "tricks": [
+        "Does Query_time alone prove CPU pressure?",
+        "Will changing a global threshold rewrite existing sessions?"
+      ],
+      "answer": "Elapsed time includes waiting and is not a CPU measurement. Use fresh sessions or an explicit session setting. Supplied evidence has a frequent player-report query and a rarer long query; compare total impact rather than selecting only the largest individual duration.",
+      "output": "A ranked slow-query table with units, frequency and next checks."
+    },
+    {
+      "slug": "03-mysql-plans",
+      "title": "EXPLAIN, indexes and misleading assumptions",
+      "minutes": 35,
+      "scenario": "The report scans many transactions. Decide whether a targeted index improves this workload.",
+      "concepts": [
+        "EXPLAIN estimates access strategy and cardinality; it is not proof of actual elapsed time.",
+        "Indexes add write/storage costs and must be justified by workload.",
+        "A tiny training dataset may show plan differences without dramatic timing differences."
+      ],
+      "steps": [
+        "Connect and record the baseline",
+        "Inspect data and the estimated plan",
+        "Apply the approved training index",
+        "Compare after-state without assuming faster timing",
+        "Restore the exercise baseline",
+        "Transfer the method without copying"
+      ],
+      "commands": "mysql --defaults-extra-file=\"$HOME/.support-lab.cnf\"\n\nUSE support_lab;\nSELECT COUNT(*) FROM transactions;\nSHOW INDEX FROM transactions;\nEXPLAIN SELECT COUNT(*),SUM(amount) FROM transactions WHERE player_id=42;\nSELECT COUNT(*),SUM(amount) FROM transactions WHERE player_id=42;\n\nCREATE INDEX idx_transactions_player ON support_lab.transactions(player_id);\n\nEXPLAIN SELECT COUNT(*),SUM(amount) FROM transactions WHERE player_id=42;\nSELECT COUNT(*),SUM(amount) FROM transactions WHERE player_id=42;\nexit\n\nDROP INDEX idx_transactions_player ON support_lab.transactions;\nSHOW INDEX FROM support_lab.transactions;",
+      "checks": [
+        "Before/after plans and equivalent query results are retained.",
+        "Recommendation includes an index tradeoff and measurement limitation."
+      ],
+      "tricks": [
+        "Is every full scan bad?",
+        "Can an index be present yet unused?",
+        "Does LIMIT guarantee cheap execution?"
+      ],
+      "answer": "Full scans may be optimal for small tables or low-selectivity predicates. Expressions, types, selectivity and statistics affect index use. LIMIT can still require scanning or sorting many rows. For 100,000 seeded rows, player 42 has 1,000 transactions totaling 10,000.00.",
+      "output": "A before/after plan comparison and an evidence-based recommendation."
+    },
+    {
+      "slug": "04-mysql-locks",
+      "title": "MySQL blocking and deadlocks",
+      "minutes": 40,
+      "scenario": "Two concurrent updates stall. Separate an ordinary lock wait from a deadlock and recover both sessions.",
+      "concepts": [
+        "A blocking chain can persist without a cycle; a deadlock requires a cycle.",
+        "The deadlock victim is not necessarily the root cause.",
+        "An open transaction can hold locks even while its client appears idle."
+      ],
+      "steps": [
+        "Open all three MySQL sessions",
+        "Acquire the first lock",
+        "Create a bounded waiter",
+        "Capture the wait relationship",
+        "Release both transactions",
+        "Build the deadlock in a precise order",
+        "Acquire the second lock",
+        "Make A request B\u2019s row",
+        "Complete the cycle",
+        "Capture the deadlock and recover",
+        "Verify restored data",
+        "Transfer the method without copying"
+      ],
+      "commands": "mysql --defaults-extra-file=\"$HOME/.support-lab.cnf\" support_lab\n\nSELECT CONNECTION_ID();\nSTART TRANSACTION;\nUPDATE players SET points=points+1 WHERE id=1;\n\nSET SESSION innodb_lock_wait_timeout=30;\nSTART TRANSACTION;\nUPDATE players SET points=points+1 WHERE id=1;\n\nSHOW FULL PROCESSLIST;\nSELECT * FROM performance_schema.data_lock_waits;\n\nROLLBACK;\n\nSTART TRANSACTION;\nUPDATE players SET points=points+1 WHERE id=1;\n\nSTART TRANSACTION;\nUPDATE players SET points=points+1 WHERE id=2;\n\nUPDATE players SET points=points+1 WHERE id=2;\n\nUPDATE players SET points=points+1 WHERE id=1;\n\nSHOW ENGINE INNODB STATUS\\G\n\nSELECT id,points FROM players ORDER BY id;",
+      "checks": [
+        "Evidence shows the blocking relation or deadlock cycle.",
+        "Both sessions end their transactions and a subsequent update succeeds."
+      ],
+      "tricks": [
+        "Does killing the waiting session remove the head blocker?",
+        "Does retrying immediately forever solve deadlocks safely?"
+      ],
+      "answer": "Killing a waiter does not release locks held by the blocker. Deadlock detection rolls back a victim; the survivor may still need an explicit rollback in this exercise. Retry only a complete safe transaction, with bounds/backoff and idempotency considerations.",
+      "output": "A lock diagram, deadlock interpretation and verified cleanup."
+    },
+    {
+      "slug": "05-replication",
+      "title": "Replication delay and reporting freshness",
+      "minutes": 15,
+      "scenario": "A reporting screen shows stale points while the primary accepts transactions. This is a supplied evidence exercise, not a configured replica.",
+      "concepts": [
+        "Application routing and replica freshness must be investigated together.",
+        "Replication threads, errors and delay metrics need timestamps and context.",
+        "An empty replica-status result on a standalone server is not a replication failure."
+      ],
+      "steps": [
+        "Read the fixture and record provenance",
+        "Build a freshness table",
+        "Choose the next investigation",
+        "Transfer the method without copying"
+      ],
+      "commands": "cd \"$COURSE_ROOT\"\ncat shared/fixtures/replication.json",
+      "checks": [
+        "Student recognizes NULL delay as unknown rather than healthy.",
+        "Recommendation addresses stale reads and the replication error separately."
+      ],
+      "tricks": [
+        "Does a running receiver thread prove the applier is current?",
+        "Can reporting freshness be inferred from one lag number alone?"
+      ],
+      "answer": "The synthetic replica receiver is running but SQL applier stopped with duplicate-key error 1062. NULL lag is not zero. Investigate consistency and cause before repair; temporary primary reads require capacity and business approval.",
+      "output": "A replication escalation note with evidence and routing tradeoffs."
+    },
+    {
+      "slug": "06-sqlserver-baseline",
+      "title": "SQL Server requests, sessions and wait deltas",
+      "minutes": 40,
+      "scenario": "SQL Server is blamed for high CPU. Capture active work and distinguish current activity from cumulative counters.",
+      "concepts": [
+        "SQL Server 2022 diagnostic permissions differ from older examples; validate visibility first.",
+        "Requests and sessions are related but not interchangeable.",
+        "Wait statistics are cumulative; compare two captures over a known interval."
+      ],
+      "steps": [
+        "Set connection details in the client shell",
+        "Confirm identity and database access",
+        "Capture baseline diagnostics",
+        "Observe a bounded workload",
+        "Compute interval wait deltas",
+        "Transfer the method without copying"
+      ],
+      "commands": "read -r -p 'SQL Server hostname or private IP: ' SQL_HOST\nread -r -p 'Assigned SQL login: ' SQL_LOGIN\nread -r -s -p 'SQL password: ' SQLCMDPASSWORD\nprintf '\\n'\nexport SQL_HOST SQL_LOGIN SQLCMDPASSWORD\nSQL_TLS_ARGS=()\ncommand -v sqlcmd\n\nsqlcmd \"${SQL_TLS_ARGS[@]}\" -S \"tcp:$SQL_HOST,1433\" -U \"$SQL_LOGIN\" -d SupportLab -b -Q 'SELECT SYSUTCDATETIME(), SUSER_SNAME(), @@VERSION;'\n\ncd \"$COURSE_ROOT\"\nsqlcmd \"${SQL_TLS_ARGS[@]}\" -S \"tcp:$SQL_HOST,1433\" -U \"$SQL_LOGIN\" -d SupportLab -b -i shared/sql/sqlserver/diagnostics.sql -o \"$HOME/support-lab/evidence/m2-06/sql-baseline.txt\"\nless \"$HOME/support-lab/evidence/m2-06/sql-baseline.txt\"\n\ncd \"$COURSE_ROOT\"\nsqlcmd \"${SQL_TLS_ARGS[@]}\" -S \"tcp:$SQL_HOST,1433\" -U \"$SQL_LOGIN\" -d SupportLab -b -i shared/sql/sqlserver/workload.sql\n\ncd \"$COURSE_ROOT\"\ncat shared/fixtures/sqlserver-waits.csv",
+      "checks": [
+        "Report includes time window, permissions and correct units.",
+        "Student separates historical high waits from interval changes."
+      ],
+      "tricks": [
+        "Can a sleeping session be the head blocker?",
+        "Does highest total_worker_time identify the currently slowest query?"
+      ],
+      "answer": "A sleeping session may hold an uncommitted transaction. Cached totals aggregate executions since compilation and do not necessarily describe this incident. Inspect execution_count, interval evidence and plans together. In the fixture LCK_M_X grows 12,000 ms, SOS_SCHEDULER_YIELD 1,000 ms, and PAGEIOLATCH_SH 200 ms.",
+      "output": "A SQL Server baseline and a wait-delta interpretation."
+    },
+    {
+      "slug": "07-sqlserver-blocking-plans-jobs",
+      "title": "Blocking chains, Query Store and job failures",
+      "minutes": 40,
+      "scenario": "A deployment coincides with latency and a failed reporting job. Establish whether the symptoms share a cause.",
+      "concepts": [
+        "Identify the head blocker through sessions as well as active requests.",
+        "Query Store compares plans and runtime intervals; correlation with deployment is not proof of causation.",
+        "SQL Agent job outcome and step outcome need separate interpretation."
+      ],
+      "steps": [
+        "Open three SQL client sessions",
+        "Prepare three independent query windows",
+        "Acquire a lock in A",
+        "Create a bounded wait in B",
+        "Observe the blocker",
+        "Release A\u2019s transaction",
+        "Release B and verify data",
+        "Live extension \u2014 Compare a controlled index change",
+        "Live extension \u2014 Start the intentional job failure",
+        "Live extension \u2014 Read job history with the learner login",
+        "Compare captured Query Store and job evidence",
+        "Transfer the method without copying"
+      ],
+      "commands": "sqlcmd \"${SQL_TLS_ARGS[@]}\" -S \"tcp:$SQL_HOST,1433\" -U \"$SQL_LOGIN\" -d SupportLab\n\nUSE SupportLab;\nSELECT @@SPID AS session_id;\nGO\n\nBEGIN TRAN;\nUPDATE dbo.Players SET points=points+1 WHERE id=1;\nGO\n\nSET LOCK_TIMEOUT 15000;\nBEGIN TRAN;\nUPDATE dbo.Players SET points=points+1 WHERE id=1;\nGO\n\nSELECT session_id,status,wait_type,blocking_session_id\nFROM sys.dm_exec_requests WHERE blocking_session_id > 0;\nGO\n\nIF @@TRANCOUNT > 0 ROLLBACK;\nSELECT @@TRANCOUNT AS open_transactions;\nGO\n\nIF @@TRANCOUNT > 0 ROLLBACK;\nSELECT @@TRANCOUNT AS open_transactions;\nSELECT id,points FROM dbo.Players ORDER BY id;\nGO\n\nUSE SupportLab;\nCREATE INDEX IX_Transactions_Player ON dbo.Transactions(player_id) INCLUDE(amount);\nEXEC sys.sp_query_store_flush_db;\nGO\n\nEXEC msdb.dbo.sp_start_job @job_name=N'SupportLab-IntentionalFailure';\nGO\n\nEXEC msdb.dbo.sp_help_jobhistory @job_name=N'SupportLab-IntentionalFailure', @mode=N'FULL';\nGO\n\ncat \"$COURSE_ROOT/shared/fixtures/query-store.csv\"\ncat \"$COURSE_ROOT/shared/fixtures/job-history.csv\"",
+      "checks": [
+        "Capture a blocking relation and roll back both sessions.",
+        "Compare Query Store duration/reads and identify the failed job step using live or explicitly synthetic evidence."
+      ],
+      "tricks": [
+        "Does a changed plan guarantee a regression?",
+        "Is plan forcing always the safest first action?",
+        "Can a failed job explain stale reports without explaining API latency?"
+      ],
+      "answer": "Compare runtime evidence across comparable intervals and row counts. Plan forcing needs validation and rollback. The fixture shows query 17 changing from plan 3 to 8 with higher duration/reads after deployment, while the job failure is a separate permission issue. The live training job deliberately throws a synthetic error.",
+      "output": "A blocking worksheet, plan comparison and job-failure escalation."
+    },
+    {
+      "slug": "08-app-db-correlation",
+      "title": "Application/database correlation",
+      "minutes": 50,
+      "scenario": "An HTTP request took five seconds, but its database query took 40 milliseconds. Determine where the rest of the time went.",
+      "concepts": [
+        "Application latency includes pool waits, SQL time, retries and downstream work.",
+        "Correlate IDs and UTC windows; acknowledge clock skew and missing instrumentation.",
+        "Request IDs in app logs do not automatically appear in database logs."
+      ],
+      "steps": [
+        "Read and reconcile the synthetic request timing",
+        "Measure the healthy live baseline",
+        "Introduce application-side delay",
+        "Compare latency with application evidence",
+        "Reset and confirm the comparison",
+        "Transfer the method without copying"
+      ],
+      "commands": "cd \"$COURSE_ROOT\"\ncat shared/fixtures/correlation.csv\n\nshared/scripts/traffic.sh http://127.0.0.1:8080/loyalty 5\n\ncd \"$COURSE_ROOT\"\nsudo shared/scripts/fault.sh latency\n\nshared/scripts/traffic.sh http://127.0.0.1:8080/loyalty 5\njournalctl -u support-tomcat --since '5 minutes ago' --utc --no-pager\n\nsudo shared/scripts/fault.sh reset\nshared/scripts/traffic.sh http://127.0.0.1:8080/loyalty 5",
+      "checks": [
+        "Timeline accounts for measured time without inventing an exact database-request-ID join.",
+        "Learner distinguishes the sample app\u2019s behavior from the supplied pooled-app evidence."
+      ],
+      "tricks": [
+        "Does slow HTTP prove slow SQL?",
+        "Can retries amplify a partial outage?"
+      ],
+      "answer": "The supplied request waits 4,000 ms for a pool connection, spends 40 ms in SQL and 960 ms elsewhere. The live latency fault intentionally delays after connecting; it is not a real pool implementation. Repeated retries can increase load and duplicate non-idempotent work.",
+      "output": "A correlated timeline and a targeted escalation request."
+    },
+    {
+      "slug": "09-database-capstone",
+      "title": "Final database incident challenge",
+      "minutes": 75,
+      "scenario": "A reporting request regressed after a release while ordinary player lookup remains responsive. Distinguish competing database causes using a separate synthetic incident pack.",
+      "concepts": [
+        "Quantify changes in workload, query cost and result equivalence.",
+        "Test competing causes with discriminating evidence.",
+        "Define a reversible correction and bounded database-health checks."
+      ],
+      "steps": [
+        "Prepare your submission workspace",
+        "Prepare database-specific evidence",
+        "Receive the incident and assign roles",
+        "Investigate within the time budget",
+        "Collect and inspect evidence",
+        "Propose one mitigation and define recovery",
+        "Verify and hand over"
+      ],
+      "commands": "cp -i \"$COURSE_ROOT/shared/templates/incident-report.md\" \"$HOME/support-lab/evidence/m2-09/incident.md\"\ndate -u +%FT%TZ\nnano \"$HOME/support-lab/evidence/m2-09/incident.md\"\n\ncp -i -i \"$COURSE_ROOT/shared/templates/database-report.md\" ~/support-lab/evidence/m2-09/database-report.md\ncat \"$COURSE_ROOT/shared/fixtures/database-incident.md\"\n\ncp -i \"$COURSE_ROOT/shared/fixtures/database-incident.md\" \"$HOME/support-lab/evidence/m2-09/case-before.md\"",
+      "checks": [
+        "Quantify the report regression and test at least two explanations.",
+        "Propose a scoped change and compare instructor-released before/after evidence.",
+        "Submit a bounded database-health automation design and an individual explanation."
+      ],
+      "tricks": [
+        "Do three unblocked snapshots rule out all intermittent blocking?",
+        "Does a plan change alone prove which repair is correct?"
+      ],
+      "answer": "Case D: execution count and returned rows are stable; reads and per-call duration rose after a plan changed. No observed blocker explains the sampled window. Compare plan/statistics/deployment evidence before proposing an index. Post-change capture is consistent with reduced work but does not prove which production change would be best. See the concealed case D release card.",
+      "output": "A case report with calculations, alternative hypotheses, before/after comparison and a database-health design."
+    }
+  ],
+  "3": [
+    {
+      "slug": "01-bash",
+      "title": "Extend your Bash script into a health check",
+      "minutes": 60,
+      "scenario": "Turn yesterday\u2019s commands into a script another engineer can run reliably.",
+      "concepts": [
+        "Quote expansions; treat arguments as data; use arrays for command arguments.",
+        "Exit codes are an interface: document healthy, unhealthy and usage outcomes.",
+        "set -e is not a substitute for deliberate error handling."
+      ],
+      "steps": [
+        "Create a script you can edit",
+        "Implement the check interface",
+        "Check syntax before execution",
+        "Test an expected failure without changing services",
+        "Test your own validation and array behavior",
+        "Compare with the reference implementation",
+        "Transfer the method without copying"
+      ],
+      "commands": "mkdir -p ~/support-lab/bin\ncat \"$HOME/support-lab/bin/triage.sh\"\nif [[ ! -e \"$HOME/support-lab/bin/my-health.sh\" ]]; then\n    cp \"$HOME/support-lab/bin/triage.sh\" \"$HOME/support-lab/bin/my-health.sh\"\nfi\nnano \"$HOME/support-lab/bin/my-health.sh\"\n\n#!/usr/bin/env bash\nset -u\nif (( $# > 2 )); then\n    printf 'Usage: %s [service [http(s)-url]]\\n' \"$0\" >&2\n    exit 2\nfi\nservice=${1-support-tomcat}\nurl=${2-http://127.0.0.1:8080/loyalty/health}\nif [[ -z \"$service\" || \"$service\" == -* || \"$service\" == *[[:space:]]* ]]; then\n    printf 'Invalid service\\n' >&2; exit 2\nfi\ncase \"$url\" in\n    http://?*|https://?*) ;;\n    *) printf 'Invalid URL\\n' >&2; exit 2 ;;\nesac\nfailed=0\nlog() { printf '%s %s\\n' \"$(date -u +%FT%TZ)\" \"$1\"; }\nfor tool in systemctl curl timeout date; do\n    command -v \"$tool\" >/dev/null || exit 2\ndone\nprobe_args=(--fail --silent --show-error --max-time 5)\nif timeout 5 systemctl is-active --quiet \"$service\"; then\n    log 'service=OK'\nelse\n    log 'service=FAIL'; failed=1\nfi\nif curl \"${probe_args[@]}\" \"$url\" >/dev/null; then\n    log 'endpoint=OK'\nelse\n    log 'endpoint=FAIL'; failed=1\nfi\nexit \"$failed\"\n\nbash -n ~/support-lab/bin/my-health.sh\nchmod 750 ~/support-lab/bin/my-health.sh\n~/support-lab/bin/my-health.sh\nscript_rc=$?\nprintf 'script_exit=%s\\n' \"$script_rc\"\n\n~/support-lab/bin/my-health.sh support-tomcat http://127.0.0.1:1\nscript_rc=$?\nprintf 'script_exit=%s\\n' \"$script_rc\"\n\n~/support-lab/bin/my-health.sh support-tomcat http://127.0.0.1:8080/loyalty/health extra\nprintf 'extra_argument_exit=%s\\n' \"$?\"\n~/support-lab/bin/my-health.sh support-tomcat file:///etc/passwd\nprintf 'invalid_url_exit=%s\\n' \"$?\"\n~/support-lab/bin/my-health.sh '' http://127.0.0.1:8080/loyalty/health\nprintf 'empty_service_exit=%s\\n' \"$?\"\n\nless \"$COURSE_ROOT/shared/scripts/health-check.sh\"\nDISK_LIMIT=invalid \"$COURSE_ROOT/shared/scripts/health-check.sh\"\nreference_rc=$?\nprintf 'reference_exit=%s\\n' \"$reference_rc\"",
+      "checks": [
+        "Your script returns 0 for healthy checks, 1 for an unreachable endpoint and 2 for invalid arguments or missing tools.",
+        "Explain the quoted option array; submit actual results from your own script."
+      ],
+      "tricks": [
+        "What happens to $? after echo runs?",
+        "Why can set -e behave differently inside conditionals?"
+      ],
+      "answer": "Capture the status immediately after the command. Explicit if command; then branches make expected failures clear. The reference health checker validates the disk threshold and reports each check instead of stopping at the first unhealthy service.",
+      "output": "A documented executable Bash health checker and test transcript."
+    },
+    {
+      "slug": "02-evidence",
+      "title": "Automated evidence collection",
+      "minutes": 55,
+      "scenario": "An escalation needs a portable evidence bundle even when some commands fail or lack permission.",
+      "concepts": [
+        "Use restrictive permissions, unique timestamped directories and a manifest.",
+        "Capture stdout, stderr and exit status for each check.",
+        "Redaction needs review; a regex cannot guarantee removal of every secret."
+      ],
+      "steps": [
+        "Collect a bounded evidence bundle",
+        "Inspect the exact bundle",
+        "Interpret missing permissions",
+        "Inspect and exercise masking with synthetic input",
+        "Write an evidence index",
+        "Transfer the method without copying"
+      ],
+      "commands": "cd \"$COURSE_ROOT\"\nshared/scripts/collect-evidence.sh \"$HOME/support-lab/evidence/m3-02/bundles\" '20 minutes ago'\ncollector_rc=$?\nprintf 'collector_exit=%s\\n' \"$collector_rc\"\n\nread -r -p 'Printed archive path: ' bundle\nstat -c '%a %n' \"$bundle\"\ntar -tzf \"$bundle\"\nreview_dir=$(mktemp -d \"$HOME/support-lab/evidence/m3-02/review-XXXXXX\")\ntar -xzf \"$bundle\" -C \"$review_dir\"\nfind \"$review_dir\" -name manifest.tsv -exec cat {} \\;\n\nprintf 'password=synthetic-only token=dummy-token\\n' | sed -E 's/((password|token|secret|authorization)[=:][[:space:]]*)[^[:space:]]+/\\1[REDACTED]/Ig'",
+      "checks": [
+        "Failed checks remain visible in the manifest.",
+        "Bundle contains no credentials or environment dumps and is reviewed before sharing."
+      ],
+      "tricks": [
+        "Can a timestamp alone prevent simultaneous filename collisions?",
+        "Should permission denied be silently converted to an empty success file?"
+      ],
+      "answer": "mktemp adds uniqueness; umask 077 restricts access. Nonzero capture results set partial=1 while preserving the rest of the bundle. Do not collect unrestricted environment/process argument data. Structured sensitive values may need stronger, format-aware redaction.",
+      "output": "A reviewed evidence archive, manifest and evidence index."
+    },
+    {
+      "slug": "03-monitoring",
+      "title": "Log parsing and threshold monitoring",
+      "minutes": 40,
+      "scenario": "Build a monitor that counts actual requests, rejects malformed rows and reports slow requests.",
+      "concepts": [
+        "Define the time window, denominator, threshold comparison and no-data behavior.",
+        "Count status fields rather than words such as ERROR in free text.",
+        "A monitoring result is only as useful as its handling of missing or stale input."
+      ],
+      "steps": [
+        "Run the known fixture",
+        "Create isolated boundary inputs",
+        "Compare healthy, empty and malformed cases",
+        "Parse a current journal window",
+        "Document the monitoring policy",
+        "Transfer the method without copying"
+      ],
+      "commands": "cd \"$COURSE_ROOT\"\nshared/scripts/monitor-log.sh shared/fixtures/application.log 10 1000\nmonitor_rc=$?\nprintf 'monitor_exit=%s\\n' \"$monitor_rc\"\n\nprintf 'status=200 latency_ms=10\\n' > ~/support-lab/evidence/m3-03/healthy.log\n: > ~/support-lab/evidence/m3-03/empty.log\nprintf 'malformed record\\n' > ~/support-lab/evidence/m3-03/malformed.log\n\nfor case_name in healthy empty malformed; do\n    \"$COURSE_ROOT/shared/scripts/monitor-log.sh\" \"$HOME/support-lab/evidence/m3-03/$case_name.log\" 10 1000\n    monitor_rc=$?\n    printf '%s exit=%s\\n' \"$case_name\" \"$monitor_rc\"\ndone\n\ndate -u +%FT%TZ > ~/support-lab/evidence/m3-03/captured-at.txt\njournalctl -u support-tomcat --since '5 minutes ago' --utc -o cat --no-pager > ~/support-lab/evidence/m3-03/window.log\n\"$COURSE_ROOT/shared/scripts/monitor-log.sh\" ~/support-lab/evidence/m3-03/window.log 10 1000",
+      "checks": [
+        "Fixture result is 6 requests, 2 errors, 33.33%, 2 slow, 1 malformed, ALERT.",
+        "Empty input yields NO_DATA and exit 2, never healthy."
+      ],
+      "tricks": [
+        "Is zero observed errors equivalent to a healthy service when no requests exist?",
+        "Should 404 responses count as server failures in this policy?"
+      ],
+      "answer": "The supplied policy counts status >=500 as server failures and latency >= threshold as slow. A rate equal to the threshold alerts. NO_DATA is unknown, not green. HTTP 4xx monitoring may be added separately according to business context.",
+      "output": "A monitoring CSV and a written policy with denominator and no-data semantics."
+    },
+    {
+      "slug": "04-slow-pipeline",
+      "title": "Slow-query summaries and correlation pipelines",
+      "minutes": 20,
+      "scenario": "Create one summary combining application errors with database slow-query evidence without pretending they share a guaranteed join key.",
+      "concepts": [
+        "Use database-native summaries for multiline slow logs.",
+        "Keep units, source window and provenance in exported results.",
+        "A correlation hypothesis must be labeled if an exact join is unavailable."
+      ],
+      "steps": [
+        "Create your report directory and source record",
+        "Produce two slow-query rankings",
+        "Save an alert result without losing it",
+        "Run the reference wrapper and inspect its manifest",
+        "Transfer the method without copying"
+      ],
+      "commands": "mkdir -p ~/support-lab/summary\nsummary_dir=$(mktemp -d \"$HOME/support-lab/summary/run-XXXXXX\")\ndate -u +%FT%TZ > \"$summary_dir/captured-at.txt\"\nprintf '%s\\n' \"$summary_dir\"\ncd \"$COURSE_ROOT\"\n\nmysqldumpslow -s t -t 5 shared/fixtures/mysql-slow.log > \"$summary_dir/slow-time.txt\"\nmysqldumpslow -s c -t 5 shared/fixtures/mysql-slow.log > \"$summary_dir/slow-count.txt\"\ncat \"$summary_dir/slow-time.txt\"\ncat \"$summary_dir/slow-count.txt\"\n\nshared/scripts/monitor-log.sh shared/fixtures/application.log > \"$summary_dir/application.csv\"\nmonitor_rc=$?\nprintf 'application_exit=%s\\n' \"$monitor_rc\" > \"$summary_dir/status.txt\"\ncat \"$summary_dir/application.csv\"\n\nshared/scripts/monitor-pipeline.sh shared/fixtures/application.log \"$HOME/support-lab/monitoring\" shared/fixtures/mysql-slow.log\npipeline_rc=$?\nprintf 'pipeline_exit=%s\\n' \"$pipeline_rc\"",
+      "checks": [
+        "Report preserves both frequency and time rankings.",
+        "Wrapper does not discard useful ALERT output because its exit code is 1."
+      ],
+      "tricks": [
+        "Does one SQL statement always fit on one line?",
+        "Can identical timestamps prove causal linkage?"
+      ],
+      "answer": "Multiline logs require a record-aware parser. Temporal overlap narrows investigation but does not prove the app request executed a particular SQL record. Keep original evidence and clearly label derived summaries.",
+      "output": "A timestamped monitoring/slow-query report and its limitations."
+    },
+    {
+      "slug": "05-scheduling",
+      "title": "Health checks, cron and safe retention",
+      "minutes": 35,
+      "scenario": "Your script works in a terminal but fails under cron. Make paths, permissions, concurrency and output explicit.",
+      "concepts": [
+        "Cron supplies a smaller environment and different working directory.",
+        "Use absolute paths, a controlled PATH and a lock to prevent overlapping runs.",
+        "Cleanup is dry-run first, narrowly scoped and separate from incident evidence collection."
+      ],
+      "steps": [
+        "Install learner-owned scripts and test the cron environment",
+        "Back up and edit your own crontab",
+        "Verify the saved entry and observe execution",
+        "Create disposable retention input",
+        "Preview, apply and verify narrowly scoped cleanup",
+        "Remove only the exercise\u2019s scheduled entries",
+        "Transfer the method without copying"
+      ],
+      "commands": "mkdir -p ~/support-lab/{bin,logs,evidence}\ncp \"$COURSE_ROOT/shared/scripts/health-check.sh\" ~/support-lab/bin/\ncp \"$COURSE_ROOT/shared/scripts/retention.sh\" ~/support-lab/bin/\n(cd /tmp && env -i HOME=\"$HOME\" PATH=/usr/bin:/bin \"$HOME/support-lab/bin/health-check.sh\")\ncheck_rc=$?\nprintf 'minimal_environment_exit=%s\\n' \"$check_rc\"\n\ncrontab -l > ~/support-lab/evidence/m3-05/crontab-before.txt\ncat \"$COURSE_ROOT/shared/templates/crontab.example\"\nprintf 'Your HOME is %s\\n' \"$HOME\"\ncrontab -e\n\ncrontab -l\n\"$HOME/support-lab/bin/health-check.sh\" >> \"$HOME/support-lab/logs/health.log\" 2>&1\ntail -n 10 \"$HOME/support-lab/logs/health.log\"\n\ndemo_home=$(mktemp -d)\nmkdir -p \"$demo_home/support-lab/evidence\"\nprintf 'dummy\\n' > \"$demo_home/support-lab/evidence/incident-old.tar.gz\"\nprintf 'keep\\n' > \"$demo_home/support-lab/evidence/unrelated.txt\"\ntouch -d '10 days ago' \"$demo_home/support-lab/evidence/incident-old.tar.gz\"\nprintf 'Demo HOME: %s\\n' \"$demo_home\"\n\nHOME=\"$demo_home\" \"$COURSE_ROOT/shared/scripts/retention.sh\" --dry-run\nHOME=\"$demo_home\" \"$COURSE_ROOT/shared/scripts/retention.sh\" --apply\nfind \"$demo_home/support-lab/evidence\" -maxdepth 1 -type f -print\n\ncrontab -e\ncrontab -l",
+      "checks": [
+        "Scheduled execution uses absolute paths and a per-user lock.",
+        "Dry-run identifies only intended incident archives older than the retention boundary."
+      ],
+      "tricks": [
+        "Will a cron job inherit your interactive exported secrets?",
+        "Why can overlapping checks create a monitoring problem?"
+      ],
+      "answer": "Cron does not inherit the current terminal environment. Use protected credential files and least privilege. flock avoids concurrent runs; log job status and review errors. find -mtime +7 means more than seven completed 24-hour periods, not a calendar cutoff.",
+      "output": "A reviewed cron entry, minimal-environment test and retention dry-run output."
+    },
+    {
+      "slug": "06-deployment-checks",
+      "title": "Deployment verification and maintenance boundaries",
+      "minutes": 20,
+      "scenario": "A deployment health gate must catch a business failure even if the process is active.",
+      "concepts": [
+        "Check service, readiness and one representative business response.",
+        "Timeouts and nonzero exits must propagate to the caller.",
+        "Automated diagnosis does not authorize automatic destructive repair."
+      ],
+      "steps": [
+        "Record the business response",
+        "Create your deployment gate",
+        "Check and run the gate",
+        "Test an affected business function",
+        "Restore and verify",
+        "Transfer the method without copying"
+      ],
+      "commands": "curl --fail --silent --max-time 5 'http://127.0.0.1:8080/loyalty/player?id=1'\ncurl --fail --silent --max-time 5 http://127.0.0.1:8080/loyalty/payment\n\n#!/usr/bin/env bash\nset -u\nif ! body=$(curl --fail --silent --show-error --max-time 5 'http://127.0.0.1:8080/loyalty/player?id=1'); then\n    printf 'player=UNREACHABLE\\n'; exit 1\nfi\nif [[ $body != '1,Synthetic Player One,100' ]]; then\n    printf 'player=UNEXPECTED_RESULT\\n'; exit 1\nfi\nprintf 'player=OK\\n'\n# Add a bounded payment check here; return nonzero if it fails.\nexit 0\n\nbash -n ~/support-lab/bin/deployment-check.sh\nchmod 750 ~/support-lab/bin/deployment-check.sh\n~/support-lab/bin/deployment-check.sh\ngate_rc=$?\nprintf 'gate_exit=%s\\n' \"$gate_rc\"\n\ncd \"$COURSE_ROOT\"\nsudo shared/scripts/fault.sh reset",
+      "checks": [
+        "Gate fails on affected business functionality even when Tomcat remains active.",
+        "Recovery checks cover the same function that originally failed."
+      ],
+      "tricks": [
+        "Can a generic /health route detect every business outage?",
+        "Should the first failed probe trigger a database restart?"
+      ],
+      "answer": "The payment simulator can fail while database readiness remains healthy. Monitor representative business paths separately. A failed probe should emit evidence and status; restarting databases is not a safe default response.",
+      "output": "A deployment-check script with documented scope and failure behavior."
+    },
+    {
+      "slug": "07-war-room",
+      "title": "Major incident simulation",
+      "minutes": 110,
+      "scenario": "Run one of three scenarios: loyalty outage, delayed transactions, or payment integration failure. Rotate roles and deliver timed updates.",
+      "concepts": [
+        "Separate facts, hypotheses and decisions in the incident log.",
+        "Assign owners and keep one coordinated change stream on the shared host.",
+        "Mitigation reduces impact; RCA may remain provisional at handover."
+      ],
+      "steps": [
+        "Prepare your submission workspace",
+        "Receive the incident and assign roles",
+        "Investigate within the time budget",
+        "Collect and inspect evidence",
+        "Propose one mitigation and define recovery",
+        "Verify and hand over"
+      ],
+      "commands": "cp -i \"$COURSE_ROOT/shared/templates/incident-report.md\" \"$HOME/support-lab/evidence/m3-07/incident.md\"\ndate -u +%FT%TZ\nnano \"$HOME/support-lab/evidence/m3-07/incident.md\"\n\ncd \"$COURSE_ROOT\"\nshared/scripts/collect-evidence.sh \"$HOME/support-lab/evidence/m3-07/bundles\" '20 minutes ago'\ncollector_rc=$?\nprintf 'collector_exit=%s\\n' \"$collector_rc\"",
+      "checks": [
+        "Timeline links symptoms, actions and results to evidence.",
+        "Updates communicate impact, current action, owner and next update time."
+      ],
+      "tricks": [
+        "Should you announce root cause when you only have correlation?",
+        "Can unrelated background warnings distract from the affected business function?"
+      ],
+      "answer": "Use instructor scenario cards. A uses db-auth; B uses latency with database decoy evidence; C uses payment while /health remains healthy. Each has distinct business recovery criteria. Grade communication of uncertainty and evidence-backed elimination of alternatives.",
+      "output": "A major incident report, evidence bundle and three stakeholder updates."
+    },
+    {
+      "slug": "08-handover",
+      "title": "Final challenges and operational handover",
+      "minutes": 30,
+      "scenario": "Another shift must continue your work without a verbal briefing.",
+      "concepts": [
+        "A handover describes remaining work, evidence locations and safe next steps.",
+        "RCA distinguishes trigger, root cause, contributing factors and detection gaps.",
+        "Monitoring improvements need an owner and measurable acceptance criterion."
+      ],
+      "steps": [
+        "Collect your handover inputs",
+        "Prepare a five-minute handover",
+        "Defend a counterexample",
+        "Write three actionable improvements",
+        "Review and submit",
+        "Transfer the method without copying"
+      ],
+      "commands": "syntax_rc=0\nfor script in \"$HOME\"/support-lab/bin/*.sh; do\n    [[ -f \"$script\" ]] || continue\n    bash -n \"$script\" || syntax_rc=1\ndone\nprintf 'syntax_exit=%s\\n' \"$syntax_rc\"",
+      "checks": [
+        "Next shift can reproduce checks and locate evidence.",
+        "Final report distinguishes confirmed facts from probable explanations."
+      ],
+      "tricks": [
+        "Is \u201cmonitor more\u201d an actionable recommendation?",
+        "Can an RCA be useful when some uncertainty remains?"
+      ],
+      "answer": "Useful recommendations name a signal, threshold/window, owner and response. Explicit uncertainty is preferable to invented certainty. Final rubric allocates points across evidence, diagnosis, recovery, scripts and communication.",
+      "output": "Operational handover and prioritized improvement backlog."
+    },
+    {
+      "slug": "09-automation-extension",
+      "title": "Advanced automation challenge bank",
+      "minutes": "Extension",
+      "scenario": "Harden the monitoring workflow against inconvenient inputs and execution contexts.",
+      "concepts": [
+        "Test adverse inputs, not only the happy path.",
+        "Concurrency, stale data and time zones can create false confidence.",
+        "Maintenance scripts need explicit boundaries and recovery plans."
+      ],
+      "steps": [
+        "Create a hardening test matrix",
+        "Run the reference boundary checks",
+        "Implement and test your extensions",
+        "Design database automation boundaries",
+        "Review the final patch"
+      ],
+      "commands": "cd \"$COURSE_ROOT\"\nshared/scripts/monitor-log.sh shared/fixtures/application.log 10 1000\nfirst_rc=$?\nshared/scripts/monitor-log.sh shared/fixtures/application.log 34 2000\nsecond_rc=$?\nprintf 'first=%s second=%s\\n' \"$first_rc\" \"$second_rc\"\nshared/scripts/collect-evidence.sh \"$HOME/support-lab/evidence/m3-09/output with spaces\" '5 minutes ago'",
+      "checks": [
+        "Each new behavior has a meaningful adverse-case test.",
+        "Unknown/unavailable dependencies are not reported as healthy."
+      ],
+      "tricks": [
+        "Can a successful parser be monitoring yesterday\u2019s data?",
+        "What happens if a timeout exits 124 and the wrapper overwrites $?"
+      ],
+      "answer": "Parsing success says nothing about freshness; capture windows and last-event timestamps matter. Preserve exit codes immediately. Treat timeout, unavailable permissions and no data as explicit operational states. See reference tests for baseline expected behavior.",
+      "output": "A hardening patch, test transcript and documented remaining limitations."
+    }
+  ]
+}

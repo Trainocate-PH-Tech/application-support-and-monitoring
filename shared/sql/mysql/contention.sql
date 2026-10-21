@@ -1,0 +1,9 @@
+-- Open TWO interactive mysql terminals, use support_lab in both.
+-- A: START TRANSACTION; UPDATE players SET points=points+1 WHERE id=1;
+-- B: START TRANSACTION; UPDATE players SET points=points+1 WHERE id=2;
+-- A: UPDATE players SET points=points+1 WHERE id=2; -- waits
+-- B: UPDATE players SET points=points+1 WHERE id=1; -- deadlock victim selected
+-- Both: ROLLBACK; (including survivor!)
+-- Observer: SHOW ENGINE INNODB STATUS\G
+-- Blocking-only: A locks id=1, B updates id=1, observer inspects data_lock_waits.
+-- Recover by ROLLBACK in A and B; do not blindly kill database sessions.

@@ -1,0 +1,13 @@
+{
+  "provenance": "SYNTHETIC teaching fixture; not captured from EC2",
+  "captured_at": "2026-10-20T01:05:00Z",
+  "primary_last_write": "2026-10-20T01:04:50Z",
+  "report_route": "replica",
+  "replica_last_visible_write": "2026-10-20T00:58:00Z",
+  "Replica_IO_Running": "Yes",
+  "Replica_SQL_Running": "No",
+  "Seconds_Behind_Source": null,
+  "Last_SQL_Errno": 1062,
+  "Last_SQL_Error": "Duplicate entry for synthetic training key",
+  "Relay_Log_File": "replica-relay-bin.000012"
+}

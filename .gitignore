@@ -1,0 +1,29 @@
+# Local credentials and environment settings
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Maven and course build output
+/shared/app/target/
+/.build/
+/Application-Support-Student.zip
+/Application-Support-Training.zip
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Editor and operating system files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

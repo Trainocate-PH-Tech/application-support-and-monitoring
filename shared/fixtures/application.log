@@ -1,0 +1,7 @@
+2026-10-20T01:00:00Z level=INFO request_id=r001 path=/player status=200 latency_ms=25 error=none
+2026-10-20T01:00:01Z level=ERROR request_id=r002 path=/player status=503 latency_ms=80 error=db_28000
+2026-10-20T01:00:02Z level=INFO request_id=r003 path=/report status=200 latency_ms=1500 error=none
+2026-10-20T01:00:03Z level=INFO request_id=r004 path=/player status=200 latency_ms=30 note=ERROR_is_a_search_term
+2026-10-20T01:00:04Z level=ERROR request_id=r005 path=/payment status=502 latency_ms=2100 error=dependency_unavailable
+2026-10-20T01:00:05Z level=INFO request_id=r006 path=/missing status=404 latency_ms=5 error=none
+malformed training record without required fields
