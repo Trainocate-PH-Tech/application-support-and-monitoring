@@ -30,3 +30,7 @@ All five use `SCRIPT INPUT_DIR OUTPUT_PARENT`, read local evidence, and produce 
 | mssql-diagnostics-report.sh | [SQL Server diagnostics](../../MSSQL_SUPPORT_DIAGNOSTICS_EXERCISE.md) |
 | mssql-regression-report.sh | [Blocking/regression](../../MSSQL_BLOCKING_PLAN_REGRESSION_EXERCISE.md) |
 | app-db-correlation-report.sh | [Application/database correlation](../../APP_DB_CORRELATION_EXERCISE.md) |
+
+## Instructor challenge reference
+
+`mysql-challenge-report.sh INPUT_DIR OUTPUT_PARENT` is the completed offline reporting solution for [MYSQL_CHALLENGE_SOLUTION.md](../../MYSQL_CHALLENGE_SOLUTION.md). Withhold it until learners submit their own script. It snapshots both captures, matches the supplied single-line workload, includes plan evidence, and flags incomplete observations. Exit 0 means collection succeeded; validation failures exit 2. It performs no database changes.

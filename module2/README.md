@@ -39,3 +39,7 @@ These pairs provide step-by-step live procedures plus offline synthetic evidence
 | SQL Server support diagnostics | [Guide](../MSSQL_SUPPORT_DIAGNOSTICS.md) | [Exercise](../MSSQL_SUPPORT_DIAGNOSTICS_EXERCISE.md) |
 | SQL Server blocking and plan regression | [Guide](../MSSQL_BLOCKING_PLAN_REGRESSION.md) | [Exercise](../MSSQL_BLOCKING_PLAN_REGRESSION_EXERCISE.md) |
 | Application/database correlation | [Guide](../APP_DB_CORRELATION.md) | [Exercise](../APP_DB_CORRELATION_EXERCISE.md) |
+
+## Independent MySQL challenge
+
+[The slow ticket-sales batch](../MYSQL_CHALLENGE.md) introduces a fresh dataset, a finite workload, and a student-built Bash report. Complete it after the support-diagnostics and slow-query exercises. Instructor setup and answers are kept in the separate solution document.
