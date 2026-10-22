@@ -125,3 +125,113 @@ Each correct field earns 5 points, for 100 total. Missing, incorrect, or duplica
 Live work is separate from fixed-answer grading. With instructor supervision, use the existing [dataset setup](shared/sql/mysql/challenge-setup.sql), [workload](shared/sql/mysql/challenge-workload.sql), and [inspection SQL](shared/sql/mysql/challenge-inspect.sql), following the linked lessons' capture and restoration procedures. Keep real measurements in separate notes, never substitute them into the graded fixture output.
 
 A global threshold does not override an explicit session setting in the workload. Plain EXPLAIN estimates access; it does not measure elapsed time. An index can help selective row access but adds write/storage cost. Do not infer CPU usage, production health, or demonstrated speedup from these fixtures. Have the instructor restore logging settings and remove only an index created for the experiment; do not delete logs or drop the dataset as routine cleanup.
+
+## Section: Hints — counting, thresholds, and awk
+
+These examples assume you are in your workspace with the evidence in `input/`. In your script, use the directory supplied as its first argument instead. `count_matches` and `threshold` are Bash functions you define yourself, not installed commands.
+
+### Count matching statements with `count_matches`
+
+`grep -Ec` counts lines matching an extended regular expression. Because each supplied SQL statement occupies one line, you can use it to count statements. Define this helper before calling it:
+
+```bash
+count_matches() {
+    local count rc
+    if count=$(grep -Ec -- "$1" "$2"); then
+        printf '%s\n' "$count"
+    else
+        rc=$?
+        if (( rc == 1 )); then
+            printf '0\n'
+        else
+            printf 'ERROR: Cannot count matches in %s\n' "$2" >&2
+            return "$rc"
+        fi
+    fi
+}
+
+# First argument: pattern. Second argument: file.
+count_matches '^SELECT COUNT.*FROM ticket_sales WHERE event_id=' input/original-workload.sql
+
+# Save the result, then format one evidence line.
+calls=$(count_matches '^SELECT COUNT.*FROM ticket_sales WHERE event_id=' input/detail.log) || exit 1
+printf 'detail_report_calls=%s\n' "$calls"
+```
+
+Here, `^` means the start of a line and `.*` means any sequence of characters. For a probe pattern, `[(]` and `[)]` match literal parentheses. Adapt the pattern and filename for the other counts. A grep exit status of `1` means no matches; a higher status means an error. Stop on errors rather than writing a misleading count.
+
+### Extract the session setting with `threshold`
+
+For a line such as `SET SESSION long_query_time = 2;`, the fifth whitespace-separated field is `2;`. This helper removes the trailing semicolon and prints `2`:
+
+```bash
+threshold() {
+    awk '/^SET SESSION long_query_time = / {
+        value = $5
+        sub(/;$/, "", value)
+        print value
+    }' "$1"
+}
+
+threshold input/original-workload.sql
+seconds=$(threshold input/capture-workload.sql) || exit 1
+printf 'capture_session_long_query_time=%s\n' "$seconds"
+```
+
+The function reads the setting; it does not change MySQL. It assumes the exact statement format used in these fixtures. In `sub(/;$/, "", value)`, `$` means the end of the text, so only the final semicolon is removed.
+
+### A small awk primer
+
+`awk` reads a file one line at a time. Its basic form is:
+
+```bash
+awk 'pattern { action }' filename
+```
+
+- `/text/` selects lines matching a regular expression.
+- `$1`, `$2`, and so on refer to fields; `$0` is the whole line. Fields are separated by whitespace by default.
+- `NR` is the current line number. `NR == 2` selects the second line.
+- `total += $3` adds the third field to a running total.
+- `END { ... }` runs once after all lines have been read.
+- `print` adds a newline. With `printf`, include `\n` yourself; `%.6f` prints six decimal places.
+
+Keep the awk program in single quotes so Bash does not expand its `$` field references.
+
+For example, a timing header looks like this (these numbers are illustrative):
+
+```text
+# Query_time: 0.125000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 500
+```
+
+On this line, `$3` is query time, `$5` is lock time, `$7` is rows sent, and `$9` is rows examined. To add query times from a complete log:
+
+```bash
+awk '/^# Query_time:/ { total += $3 }
+     END { printf "baseline_query_seconds=%.6f\n", total }' input/baseline.log
+```
+
+For **report-only** row totals, remember the fields from a timing header, then add them only when the following SQL statement matches a sales report. This avoids including the probe. Here is one example to adapt:
+
+```bash
+awk '
+    /^# Time:/ { ready = 0 }
+    /^# Query_time:/ { sent = $7; ready = 1 }
+    ready && /^SELECT COUNT.*FROM ticket_sales WHERE event_id=/ {
+        total += sent
+        ready = 0
+    }
+    END { printf "detail_report_rows_sent=%.0f\n", total }
+' input/detail.log
+```
+
+Finally, use `-F '\t'` to read tab-separated columns. Inspect the header first to identify the column you need:
+
+```bash
+# Select the event's result row and print its sales-count column.
+awk -F '\t' '$1 == 42 { print $2 }' input/results.tsv
+
+# Skip the plan header and print the access-type column.
+awk -F '\t' 'NR == 2 { print $2 }' input/plan-before.tsv
+```
+
+Try these snippets individually, then combine the calculations into your script. Keep exploratory output out of `module2-evidence.txt`; that file must follow the required 20-line contract.
