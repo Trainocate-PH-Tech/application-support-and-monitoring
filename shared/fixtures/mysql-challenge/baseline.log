@@ -1,0 +1,6 @@
+# Time: 2026-10-21T08:00:00.000000Z
+# User@Host: ticket_reader[ticket_reader] @ localhost [] Id: 10
+# Query_time: 8.000000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 0
+use mysql_ticket_challenge;
+SET timestamp=1792569600;
+SELECT SLEEP(8) AS heartbeat_probe;

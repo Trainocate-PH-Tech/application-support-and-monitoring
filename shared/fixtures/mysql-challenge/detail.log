@@ -1,0 +1,54 @@
+# Time: 2026-10-21T08:00:00.000000Z
+# User@Host: ticket_reader[ticket_reader] @ localhost [] Id: 10
+# Query_time: 8.000000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 0
+use mysql_ticket_challenge;
+SET timestamp=1792569600;
+SELECT SLEEP(8) AS heartbeat_probe;
+# Time: 2026-10-21T08:00:00.000000Z
+# User@Host: ticket_reader[ticket_reader] @ localhost [] Id: 10
+# Query_time: 0.025000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 100000
+use mysql_ticket_challenge;
+SET timestamp=1792569600;
+SELECT COUNT(*) AS sales_count, SUM(amount) AS sales_total FROM ticket_sales WHERE event_id=42;
+# Time: 2026-10-21T08:00:00.000000Z
+# User@Host: ticket_reader[ticket_reader] @ localhost [] Id: 10
+# Query_time: 0.025000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 100000
+use mysql_ticket_challenge;
+SET timestamp=1792569600;
+SELECT COUNT(*) AS sales_count, SUM(amount) AS sales_total FROM ticket_sales WHERE event_id=43;
+# Time: 2026-10-21T08:00:00.000000Z
+# User@Host: ticket_reader[ticket_reader] @ localhost [] Id: 10
+# Query_time: 0.025000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 100000
+use mysql_ticket_challenge;
+SET timestamp=1792569600;
+SELECT COUNT(*) AS sales_count, SUM(amount) AS sales_total FROM ticket_sales WHERE event_id=44;
+# Time: 2026-10-21T08:00:00.000000Z
+# User@Host: ticket_reader[ticket_reader] @ localhost [] Id: 10
+# Query_time: 0.025000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 100000
+use mysql_ticket_challenge;
+SET timestamp=1792569600;
+SELECT COUNT(*) AS sales_count, SUM(amount) AS sales_total FROM ticket_sales WHERE event_id=45;
+# Time: 2026-10-21T08:00:00.000000Z
+# User@Host: ticket_reader[ticket_reader] @ localhost [] Id: 10
+# Query_time: 0.025000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 100000
+use mysql_ticket_challenge;
+SET timestamp=1792569600;
+SELECT COUNT(*) AS sales_count, SUM(amount) AS sales_total FROM ticket_sales WHERE event_id=46;
+# Time: 2026-10-21T08:00:00.000000Z
+# User@Host: ticket_reader[ticket_reader] @ localhost [] Id: 10
+# Query_time: 0.025000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 100000
+use mysql_ticket_challenge;
+SET timestamp=1792569600;
+SELECT COUNT(*) AS sales_count, SUM(amount) AS sales_total FROM ticket_sales WHERE event_id=47;
+# Time: 2026-10-21T08:00:00.000000Z
+# User@Host: ticket_reader[ticket_reader] @ localhost [] Id: 10
+# Query_time: 0.025000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 100000
+use mysql_ticket_challenge;
+SET timestamp=1792569600;
+SELECT COUNT(*) AS sales_count, SUM(amount) AS sales_total FROM ticket_sales WHERE event_id=48;
+# Time: 2026-10-21T08:00:00.000000Z
+# User@Host: ticket_reader[ticket_reader] @ localhost [] Id: 10
+# Query_time: 0.025000 Lock_time: 0.000000 Rows_sent: 1 Rows_examined: 100000
+use mysql_ticket_challenge;
+SET timestamp=1792569600;
+SELECT COUNT(*) AS sales_count, SUM(amount) AS sales_total FROM ticket_sales WHERE event_id=49;

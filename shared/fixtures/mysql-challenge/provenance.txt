@@ -1,0 +1,6 @@
+evidence_source=SYNTHETIC
+Scenario: fixed teaching evidence, not a live server capture.
+Baseline and detail each represent one completed batch.
+Session min_examined_row_limit is zero in both captures.
+All eight business results were verified for both runs.
+Times and plan estimates are invented for reproducible grading.

@@ -1,0 +1,2 @@
+table	type	possible_keys	key	rows	Extra
+ticket_sales	ALL	NULL	NULL	100000	Using where

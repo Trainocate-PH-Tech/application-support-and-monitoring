@@ -1,81 +1,64 @@
 #!/usr/bin/env bash
-# Instructor reference solution: offline evidence only.
+# Instructor reference: fixed fixture format only; no database access.
 set -euo pipefail
 umask 077
 export LC_ALL=C
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 2; }
-[[ $# == 2 ]] || fail "Usage: $0 INPUT_DIR OUTPUT_PARENT"
+[[ $# == 1 ]] || fail "Usage: $0 INPUT_DIR"
 input=$1
-parent=$2
-files=(provenance.txt baseline.log detail.log original-workload.sql capture-workload.sql plan-before.txt)
-for file in "${files[@]}"; do
-    [[ -f $input/$file && -r $input/$file ]] || fail "Missing or unreadable input: $file"
+for file in provenance.txt original-workload.sql capture-workload.sql baseline.log detail.log results.tsv plan-before.tsv; do
+    [[ -f $input/$file && -r $input/$file && -s $input/$file ]] || fail "Missing, unreadable, or empty input: $file"
 done
-mkdir -p -- "$parent" || fail 'Cannot create output parent.'
-bundle=$(mktemp -d -- "$parent/mysql-challenge-XXXXXX") || fail 'Cannot create report directory.'
-for file in "${files[@]}"; do cp -- "$input/$file" "$bundle/$file"; done
-if [[ -f $input/plan-after.txt ]]; then
-    cp -- "$input/plan-after.txt" "$bundle/plan-after.txt"
-fi
 for file in baseline.log detail.log; do
     awk '/^# Query_time:/ {
-        if(NF!=9 || $3 !~ /^[0-9]+([.][0-9]+)?$/ || $5 !~ /^[0-9]+([.][0-9]+)?$/ || $7 !~ /^[0-9]+$/ || $9 !~ /^[0-9]+$/) exit 2
-    }' "$bundle/$file" || fail "Malformed timing header: $file"
+        n++
+        if (NF!=9 || $3 !~ /^[0-9]+([.][0-9]+)?$/ || $5 !~ /^[0-9]+([.][0-9]+)?$/ || $7 !~ /^[0-9]+$/ || $9 !~ /^[0-9]+$/) bad=1
+    } END {if (!n || bad) exit 2}' "$input/$file" || fail "Invalid timing evidence: $file"
 done
-summarize() {
-    local file=$1
-    # Match the single-line query forms in THIS supplied workload only.
-    awk '
-    /^# Time:/ {ready=0}
-    /^# Query_time:/ {ready=1; q=$3; lock=$5; rows=$9; headers++; total+=q}
-    ready && /^SELECT SLEEP[(]8[)] AS heartbeat_probe;/ {
-        probes++; probe_time+=q; probe_rows+=rows; ready=0
-    }
-    ready && /^SELECT COUNT.*SUM.*FROM ticket_sales WHERE event_id=/ {
-        calls++; call_time+=q; examined+=rows; lock_time+=lock; ready=0
-    }
-    END {
-        printf "timing_headers=%d total_logged_seconds=%.6f\n",headers,total
-        printf "captured_report_calls=%d report_seconds=%.6f report_rows_examined=%.0f report_lock_seconds=%.6f\n",calls,call_time,examined,lock_time
-        printf "captured_probe_calls=%d probe_seconds=%.6f probe_rows_examined=%.0f\n",probes,probe_time,probe_rows
-        if(!headers) print "UNKNOWN: no timing evidence; verify capture before interpreting zero counts"
-        if(calls!=8 || probes!=1) print "INCOMPLETE_OR_MIXED: expected one probe and eight reports for one full run"
-    }' "$file"
-}
-{
-    printf 'MYSQL CHALLENGE REPORT\nCaptured UTC: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    cat -- "$bundle/provenance.txt"
-    for file in original-workload.sql capture-workload.sql; do
-        printf '\nWORKLOAD CONFIGURATION: %s\n' "$file"
-        if grep -nE 'long_query_time|min_examined_row_limit|SLEEP' "$bundle/$file"; then :; else
-            rc=$?; (( rc == 1 )) || fail 'Cannot read workload copy.'
-            printf 'UNKNOWN: no matching settings or probe text\n'
-        fi
-    done
-    for file in baseline.log detail.log; do
-        printf '\nCAPTURE: %s\n' "$file"
-        summarize "$bundle/$file"
-        if command -v mysqldumpslow >/dev/null 2>&1; then
-            for order in c at t; do
-                printf '\nmysqldumpslow sort=%s\n' "$order"
-                mysqldumpslow -s "$order" "$bundle/$file"
-            done
-        else
-            printf 'UNKNOWN: mysqldumpslow unavailable; grouped rankings omitted\n'
-        fi
-    done
-    printf '\nPLAN AND RESULT BEFORE CHANGE\n'
-    cat -- "$bundle/plan-before.txt"
-    if [[ -f $bundle/plan-after.txt ]]; then
-        printf '\nPLAN AND RESULT AFTER CHANGE\n'
-        cat -- "$bundle/plan-after.txt"
+count_matches() {
+    local count rc
+    if count=$(grep -Ec -- "$1" "$2"); then
+        printf '%s' "$count"
     else
-        printf '\nUNKNOWN: no post-change plan supplied; improvement is not demonstrated\n'
+        rc=$?
+        if (( rc == 1 )); then printf '0'; else fail "Cannot read: $2"; fi
     fi
-    printf '\nINTERPRETATION TO COMPLETE\nFacts: ...\nCatch and evidence: ...\nHypothesis: ...\nNext check: ...\nCleanup verified: ...\n'
-    printf '\nLimits: recognizes the supplied single-line workload only, not arbitrary SQL.\n'
-    printf 'Counts describe logged statements, not all application calls. Low thresholds include otherwise fast work.\n'
-    printf 'No CPU diagnosis or speedup is inferred. Capture success is not a health verdict.\n'
-    printf 'Review every copied file before sharing; no automatic redaction is performed.\n'
-} > "$bundle/report.txt"
-printf 'Report: %s/report.txt\n' "$bundle"
+}
+threshold() {
+    awk '/^SET SESSION long_query_time = / {value=$5; sub(/;$/, "", value); print value}' "$1"
+}
+# Calculate before opening the output: missing inputs never truncate an old report.
+report=$(
+    set -e
+    grep '^evidence_source=' "$input/provenance.txt"
+    printf 'submitted_report_calls=%s\n' "$(count_matches '^SELECT COUNT.*FROM ticket_sales WHERE event_id=' "$input/original-workload.sql")"
+    printf 'original_session_long_query_time=%s\n' "$(threshold "$input/original-workload.sql")"
+    printf 'capture_session_long_query_time=%s\n' "$(threshold "$input/capture-workload.sql")"
+    for capture in baseline detail; do
+        printf '%s_probe_calls=%s\n' "$capture" "$(count_matches '^SELECT SLEEP[(]8[)] AS heartbeat_probe;' "$input/$capture.log")"
+        printf '%s_report_calls=%s\n' "$capture" "$(count_matches '^SELECT COUNT.*FROM ticket_sales WHERE event_id=' "$input/$capture.log")"
+    done
+    for capture in baseline detail; do
+        awk -v capture="$capture" '/^# Query_time:/ {seconds+=$3}
+            END {printf "%s_query_seconds=%.6f\n",capture,seconds}' "$input/$capture.log"
+    done
+    awk '/^# Query_time:/ {locks+=$5}
+        END {printf "detail_lock_seconds=%.6f\n",locks}' "$input/detail.log"
+    # Associate each single-line report with its own preceding timing header.
+    awk '
+        /^# Time:/ {ready=0}
+        /^# Query_time:/ {ready=1; sent=$7; examined=$9}
+        ready && /^SELECT COUNT.*FROM ticket_sales WHERE event_id=/ {
+            total_sent+=sent; total_examined+=examined; ready=0
+        }
+        END {printf "detail_report_rows_examined=%.0f\ndetail_report_rows_sent=%.0f\n", total_examined,total_sent}
+    ' "$input/detail.log"
+    awk -F '\t' '$1==42 {printf "event_42_sales_count=%s\nevent_42_sales_total=%s\n",$2,$3}' "$input/results.tsv"
+    awk -F '\t' 'NR==2 {
+        printf "plan_before_access_type=%s\nplan_before_key=%s\nplan_before_estimated_rows=%s\n",$2,($4=="NULL" ? "NONE" : $4),$5
+    }' "$input/plan-before.tsv"
+    # Human conclusions for this specific scenario; not an automated diagnosis.
+    printf 'capture_cause=SESSION_THRESHOLD\nindex_cannot_remove=DELIBERATE_SLEEP\n'
+)
+printf '%s\n' "$report" > module2-evidence.txt
+printf 'Report: module2-evidence.txt\n'
