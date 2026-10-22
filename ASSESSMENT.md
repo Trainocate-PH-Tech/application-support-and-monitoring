@@ -4,8 +4,6 @@
 
 Demonstrate the ability to investigate a casino loyalty-statement incident by correlating application and payment logs, distinguishing slow-log visibility from query execution, and correcting inefficient database access. Produce reproducible evidence through a single Bash script without loops.
 
-This assessment combines the precise record matching in [REGEX_CHALLENGE.md](REGEX_CHALLENGE.md) with the query-evidence interpretation in [MYSQL_CHALLENGE.md](MYSQL_CHALLENGE.md). All people, gaming transactions, and incident records are fictional training data inspired by a Philippine integrated casino resort; they are not Okada business records.
-
 On completion, candidates must be able to:
 
 - Match complete records while rejecting malformed and near-matching entries.
@@ -17,7 +15,7 @@ On completion, candidates must be able to:
 
 ## Expected Output
 
-**Duration:** 150 minutes, excluding instructor setup and waiting for the shared database execution slot. Submit `report-utility.sh` and the `evidence.txt` it generates. Do not submit a manually edited evidence file.
+Submit `report-utility.sh` and the `evidence.txt` it generates. Leave both files in your respective directories in the sandbox EC2 server.
 
 ### Environment and supplied materials
 
@@ -51,6 +49,44 @@ TIMESTAMP id=ID level=LEVEL env=ENV service=SERVICE request=REQUEST player_id=PL
 
 Treat JSON, pipe-separated entries, and malformed application records as ineligible. Valid application durations are nonnegative integers without leading zeroes. The qualifying request used for correlation has the form `req-` followed by four digits; it is safe to interpolate as literal ERE text. Player IDs are positive decimal integers. The supplied payment log has exactly one production `CONTEXT` / `ACCEPTED` row for the qualifying request.
 
+### Example: using `--defaults-extra-file`
+
+On EC2, the instructor can create the following connection file using the supplied training credentials. These are one-time setup commands, outside `report-utility.sh`; `umask` and `chmod` are not additions to the permitted report-processing commands.
+
+```bash
+MYSQL_DEFAULTS_FILE="$HOME/okada-client.cnf"
+umask 077
+cat > "$MYSQL_DEFAULTS_FILE" <<'EOF'
+[client]
+user=developer
+password=password
+host=localhost
+EOF
+chmod 600 "$MYSQL_DEFAULTS_FILE"
+```
+
+`[client]` identifies settings read by the MySQL client. `$HOME` expands to an absolute path (for example, `/home/ubuntu/okada-client.cnf`). Keep the password in this file rather than in your report script. If the instructor has already supplied a file, assign its absolute path to `MYSQL_DEFAULTS_FILE` instead of recreating it.
+
+Test the connection with a read-only query:
+
+```bash
+mysql --defaults-extra-file="$MYSQL_DEFAULTS_FILE" \
+  --batch --raw --skip-column-names \
+  --database=okada_assessment \
+  --execute='SELECT CURRENT_USER(), DATABASE();'
+```
+
+The result should identify `developer@localhost` and `okada_assessment`, separated by a tab. Put `--defaults-extra-file` immediately after `mysql`, before the other options. MySQL reads the connection settings from the file, so no `-p` option or password prompt is needed.
+
+During your assigned execution slot, run your script from your submission directory, passing the same file as its second argument:
+
+```bash
+LOG_DIR="/home/ubuntu/okada-assessment-validation/input"
+bash report-utility.sh "$LOG_DIR" "$MYSQL_DEFAULTS_FILE"
+```
+
+The log directory above is the validated EC2 fixture location; use the instructor's replacement path if the files have been moved. Inside the script, `MYSQL_DEFAULTS_FILE` is assigned from `$2`, then passed to each `mysql` invocation as shown above.
+
 ### Script contract
 
 ```bash
@@ -59,9 +95,9 @@ bash report-utility.sh LOG_DIR MYSQL_DEFAULTS_FILE
 
 Both arguments may contain spaces and must be quoted wherever used. Run from your own submission directory. Write `evidence.txt` there, replacing its contents on a successful full run. The script must calculate all values; fixed output labels and the incident criteria may be literal strings.
 
-Use only these processing commands: **`cat`, `grep` (including `-E` and `-Ec`), `tail`, simple `awk`, and `mysql`**. Bash assignments, quoted variable expansion, command substitution, pipes, here-strings, here-documents, and redirection are permitted. Use `set -eu` and `export LC_ALL=C` as the only required shell configuration statements. Do not use shell functions, `if`, `case`, `for`, `while`, `until`, explicit awk loops, `cut`, `wc`, `sed`, `sort`, Python, Perl, jq, or other processing utilities. Pattern/action selection and scalar accumulation in awk are allowed. Do not use grep PCRE or lookarounds.
+Use only these processing commands: **`cat`, `grep` (including `-E` and `-Ec`), `tail`, simple `awk`, and `mysql`**. Bash assignments, quoted variable expansion, command substitution, pipes, here-strings, here-documents, and redirection are permitted.
 
-Read each input into a variable with a direct `cat` command substitution before processing. `set -e` stops on failed direct file reads and MySQL commands; `set -u` catches unset variables. Derive every value before the final output here-document so ordinary read/database failures preserve previous evidence. This is a bounded exercise with instructor-validated, nonempty fixtures, not an arbitrary-log parser.
+Read each input into a variable with a direct `cat` command substitution before processing. Derive every value before the final output here-document so ordinary read/database failures preserve previous evidence.
 
 `grep -Ec` prints `0` but exits with status 1 when no lines match. For a valid zero count, use `grep -Ec ... | cat` in command substitution. Do **not** enable `pipefail` for this exercise: the final `cat` intentionally makes a no-match count usable with `set -e`. Since this also hides upstream grep errors, check regex syntax during development and use only successfully loaded fixture variables. Investigate any stderr output; a zero count is not proof that a command was valid.
 
