@@ -31,11 +31,11 @@ Slides 5–9. Time: 40.
 
 Open the instructor session
 
-From the folder holding okada.pem, connect. The following steps run on the server after login.
+Using the instructor key at ~/pem/okada.pem, connect. The following steps run on the server after login.
 
 ```bash
-chmod 600 okada.pem
-ssh -i okada.pem ubuntu@47.131.221.162
+chmod 600 ~/pem/okada.pem
+ssh -i ~/pem/okada.pem ubuntu@47.131.221.162
 whoami
 id
 hostname

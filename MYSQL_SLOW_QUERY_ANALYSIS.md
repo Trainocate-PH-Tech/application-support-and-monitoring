@@ -2,7 +2,7 @@
 
 [Hands-on exercise](MYSQL_SLOW_QUERY_ANALYSIS_EXERCISE.md) · [Module 2](module2/README.md)
 
-**Environment:** Ubuntu Bash and MySQL 8.0/8.4. SQL blocks run at `mysql>`; Bash blocks run in the Linux shell. First follow [the diagnostic guide](MYSQL_SUPPORT_DIAGNOSTICS.md) to load `mysql_support_demo` and obtain a reader account. No password belongs in a shell argument or submitted evidence. Use a training administrator only for the explicitly labeled setup/change steps. Record UTC timestamps, host, version, and account with each capture.
+**Environment:** Ubuntu Bash and MySQL 8.0/8.4. SQL blocks run at `mysql>`; Bash blocks run in the Linux shell. First follow [the diagnostic guide](MYSQL_SUPPORT_DIAGNOSTICS.md) to load `mysql_support_demo` and connect as `developer` with password `password` on the EC2 training host. No password belongs in a shell argument or submitted evidence. This account has administrator privileges; perform changes only in the explicitly labeled setup/change steps. Record UTC timestamps, host, version, and account with each capture.
 
 ## Section: Establish the symptom and capture settings
 
@@ -60,12 +60,12 @@
 1. Load the base sample using the diagnostic guide if needed. In Bash at the repository root, import the separate training table once:
 
    ```bash
-   sudo mysql < shared/sql/mysql/slow-analysis-setup.sql
+   mysql -u developer -p < shared/sql/mysql/slow-analysis-setup.sql
    ```
 
-   Use your configured administrator login with `-p` instead if socket authentication is unavailable. Do not add `--force`. Existing `analysis_orders` deliberately causes failure; inspect and reuse a completed load rather than overwriting it.
+   Enter `password` at the prompt. Do not add `--force`. Existing `analysis_orders` deliberately causes failure; inspect and reuse a completed load rather than overwriting it.
 2. Expect 100000 rows. Customer 42 has 1000 rows and amount 10000.00. Existing `SELECT` on `mysql_support_demo.*` covers this table. No change is made to the original six orders.
-3. In the reader client, inspect the baseline:
+3. In the MySQL client, inspect the baseline:
 
    ```sql
    USE mysql_support_demo;

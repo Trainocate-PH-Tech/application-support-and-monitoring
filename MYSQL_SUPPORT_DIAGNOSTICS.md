@@ -68,9 +68,9 @@ Ubuntu package/service context: [Ubuntu MySQL server documentation](https://ubun
 ## Before the diagnostic sections
 
 - Run **Bash** blocks at your Linux shell and **SQL** blocks at the `mysql>` prompt. Do not paste prompt characters such as `$` or `mysql>`.
-- Replace `YOUR_DB_USER` with your assigned MySQL login. Never put a password directly in a command or shared evidence.
+- On the EC2 training host, examples use the local MySQL administrator `developer`; enter `password` at each `-p` prompt. Connect over SSH first (see [server access](README.md#test-server)). Keep passwords out of shell arguments and submitted evidence.
 - The service validation, client, session, connection, variable, error-log, and baseline sections inspect state. The sample database setup section loads data and provisions access; the slow-query capture, verification, and restoration sections change logging and belong in a controlled administrative exercise; skip them during a read-only investigation.
-- Use your diagnostic account for routine checks. Linux sudo access does not automatically grant privileges to that database account.
+- `developer` is an administrator on this training instance. Keep routine checks read-only and perform changes only in the labeled lab steps. Linux sudo and MySQL privileges are separate.
 - Keep timestamps with your observations. SQL text and logs can contain application data; redact sensitive values before sharing.
 
 ## Section: Validate the service and local listener
@@ -112,18 +112,18 @@ Ubuntu package/service context: [Ubuntu MySQL server documentation](https://ubun
 
    This reports the client version, not necessarily the server version. If it is missing, have the administrator install the appropriate client package before continuing.
 
-2. Open a local connection with your assigned database account:
+2. Open a local connection with the training account:
 
    ```bash
-   mysql --connect-timeout=5 -u YOUR_DB_USER -p
+   mysql --connect-timeout=5 -u developer -p
    ```
 
-   Enter the password at the prompt. On Linux this normally uses a local Unix socket.
+   Enter `password` at the prompt. On Linux this normally uses a local Unix socket.
 
 3. To test local TCP explicitly, exit the previous client with `exit`, then run:
 
    ```bash
-   mysql --protocol=TCP -h 127.0.0.1 -P 3306 --connect-timeout=5 -u YOUR_DB_USER -p
+   mysql --protocol=TCP -h 127.0.0.1 -P 3306 --connect-timeout=5 -u developer -p
    ```
 
    Socket and TCP connections can match different account/authentication rules. Use the connection method your administrator provisioned.
@@ -136,7 +136,7 @@ Ubuntu package/service context: [Ubuntu MySQL server documentation](https://ubun
 
    If it fails, use the configured administrator login. Do not change authentication to make this example work.
 
-**Expected result:** The `mysql>` prompt appears. Use your diagnostic login for the client basics, session, connection, variable, and error-log sections.
+**Expected result:** The `mysql>` prompt appears. Use `developer` for these training examples.
 
 | Error | Next check |
 |---|---|
@@ -161,36 +161,22 @@ The sample contains three fictional customers and six orders. `customers.custome
 
    Stop if either command fails. If the repository is only on your workstation, copy the SQL file to EC2 first and use its actual path in the import command.
 
-2. Import once, using local administrative socket authentication:
+2. Import once, using the training administrator:
 
    ```bash
-   sudo mysql < shared/sql/mysql/support-diagnostics-sample.sql
+   mysql -u developer -p < shared/sql/mysql/support-diagnostics-sample.sql
    ```
 
-   If your administrator uses password authentication instead, use this alternative (replace `YOUR_ADMIN_USER`):
-
-   ```bash
-   mysql -u YOUR_ADMIN_USER -p < shared/sql/mysql/support-diagnostics-sample.sql
-   ```
-
-   Use one import method, not both. Do not add `--force`. Expect `mysql_support_demo`, `3` customers, and `6` orders in the final output.
+   Enter `password` at the prompt. Do not add `--force`. Expect `mysql_support_demo`, `3` customers, and `6` orders in the final output.
 
    **Repeat runs:** The script deliberately fails if `mysql_support_demo` already exists. It does not drop or overwrite data. If you already loaded it, skip reimporting and verify the counts below. If a previous import failed partway, have the administrator inspect the dedicated training database before deciding how to recover; do not continue past errors or delete an unfamiliar database.
 
-3. Open an administrative client using [Connect with the mysql client](#section-connect-with-the-mysql-client). If you already have an assigned diagnostic account, have the administrator grant it `SELECT` on `mysql_support_demo.*` using its exact account and host. For a dedicated local exercise, create a new account as follows, replacing the password placeholder privately before execution:
+3. The EC2 account `developer` already has administrative access, including access to this sample database. No extra account or grants are needed for these examples. For a classroom with separate learner identities, the instructor can instead provision a read-only account with `SELECT` on `mysql_support_demo.*`.
 
-   ```sql
-   CREATE USER 'mysql_demo_reader'@'localhost' IDENTIFIED BY 'REPLACE_WITH_PRIVATE_PASSWORD';
-   GRANT SELECT ON mysql_support_demo.* TO 'mysql_demo_reader'@'localhost';
-   exit
-   ```
-
-   Do not reuse the placeholder password. If the user already exists, inspect its grants instead of resetting its password. The sample SQL intentionally contains no credentials or automatic account creation. `SELECT` is sufficient for the data exercises; server-wide process visibility still requires a separately authorized `PROCESS` grant.
-
-4. Reconnect from Bash as the new reader, or your assigned account. Use that username wherever later tasks say `YOUR_DB_USER`:
+4. Reconnect from Bash using the training account and enter `password`:
 
    ```bash
-   mysql --connect-timeout=5 -u mysql_demo_reader -p mysql_support_demo
+   mysql --connect-timeout=5 -u developer -p mysql_support_demo
    ```
 
 5. At `mysql>`, verify the seed and paid-order total:
@@ -289,7 +275,7 @@ The sample contains three fictional customers and six orders. `customers.custome
 3. On the training host, open a second Bash terminal and connect with the **same diagnostic account** so both sessions are visible without extra privileges:
 
    ```bash
-   mysql --connect-timeout=5 -u YOUR_DB_USER -p mysql_support_demo
+   mysql --connect-timeout=5 -u developer -p mysql_support_demo
    ```
 
    At the second terminal's `mysql>` prompt, run this single-row demonstration:

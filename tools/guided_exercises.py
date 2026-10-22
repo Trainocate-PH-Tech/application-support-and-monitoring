@@ -15,9 +15,9 @@ guide(1,1,'Instructor access through the supplied key; a unique learner account 
 S('Generate your own SSH key',W,'Run this only if this course-specific key does not already exist. Accept a passphrase and keep the private file on your workstation. Send only the displayed public key to the instructor.',
 r'''ssh-keygen -t ed25519 -f "$HOME/.ssh/support_lab_ed25519"
 cat "$HOME/.ssh/support_lab_ed25519.pub"''','Two key files exist; only the .pub file is shared.','If asked to overwrite a key, answer no and ask the instructor to confirm which existing key to use.'),
-S('Open the instructor session','Instructor · local workstation → application server','From the folder holding okada.pem, connect. The following steps run on the server after login.',
-r'''chmod 600 okada.pem
-ssh -i okada.pem ubuntu@47.131.221.162
+S('Open the instructor session','Instructor · local workstation → application server','Using the instructor key at ~/pem/okada.pem, connect. The following steps run on the server after login.',
+r'''chmod 600 ~/pem/okada.pem
+ssh -i ~/pem/okada.pem ubuntu@47.131.221.162
 whoami
 id
 hostname
@@ -236,17 +236,17 @@ S('Analyze platform evidence','Learner · Markdown evidence review','Read [Platf
 'Instructor verifies the active fault is reset and /health returns 200. The bounded CPU worker should already have exited; retain observations, not an active load generator.',
 ['resource-baseline.txt — interval observations','connectivity-table.md — layer, evidence, limitation and next check'])
 
-guide(2,1,'Module 1 stack is healthy. Instructor has provisioned a per-team MySQL training account, supplied its password privately, and enabled the diagnostic grants in the setup guide.',[
-S('Create a protected client configuration',L,'Open nano after creating the file with restrictive permissions. Enter the four configuration lines below in the editor; replace the account and password with privately supplied values. Save with Ctrl-O, Enter; exit with Ctrl-X.',
+guide(2,1,'Module 1 stack is healthy. The EC2 training administrator is developer with password password; alternatively, use a per-team account with the diagnostic grants in the setup guide.',[
+S('Create a protected client configuration',L,'Open nano after creating the file with restrictive permissions. Enter the four configuration lines below in the editor; use the EC2 training credentials shown below, or your assigned team credentials. Save with Ctrl-O, Enter; exit with Ctrl-X.',
 r'''umask 077
 touch "$HOME/.support-lab.cnf"
 chmod 600 "$HOME/.support-lab.cnf"
 nano "$HOME/.support-lab.cnf"''','The file exists with mode 600. Do not paste its contents into submitted evidence.','If the file already has valid credentials, inspect/edit locally rather than overwriting another configuration.'),
-S('Enter the client settings','Learner · nano editor for ~/.support-lab.cnf','This is configuration text, not shell commands. Use localhost for the team account described in the setup guide.',
+S('Enter the client settings','Learner · nano editor for ~/.support-lab.cnf','This is configuration text, not shell commands. These examples use the local EC2 administrator developer with password password. Use your assigned team credentials instead when provided.',
 r'''[client]
-user=YOUR_ASSIGNED_TEAM_LOGIN
-password=YOUR_PRIVATE_PASSWORD
-host=localhost''','The instructor-provided login replaces the placeholder and no placeholder remains.','Account host matching matters; do not switch localhost to 127.0.0.1 unless the instructor created the matching account.','ini'),
+user=developer
+password=password
+host=localhost''','The file contains the EC2 training login or your assigned team login.','Account host matching matters; do not switch localhost to 127.0.0.1 unless the instructor created the matching account.','ini'),
 S('Run the bounded health check',L,'Return to Bash. Capture status immediately; do not log the configuration file.',
 r'''stat -c '%a %n' "$HOME/.support-lab.cnf"
 cd "$COURSE_ROOT"

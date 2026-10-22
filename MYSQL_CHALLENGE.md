@@ -24,7 +24,7 @@ The new database is `mysql_ticket_challenge`, separate from previous labs. Its `
 
 There are 100000 sales across 100 event IDs. Each event has 1000 sales totalling 25000.00. These fixed results let you detect accidental changes to the business query.
 
-The instructor imports [challenge-setup.sql](shared/sql/mysql/challenge-setup.sql) once and provides a reader account. You receive two process files:
+The instructor imports [challenge-setup.sql](shared/sql/mysql/challenge-setup.sql) once and provides database access. On the EC2 training host, use `developer` and enter `password` at each `-p` prompt after connecting over SSH. You receive two process files:
 
 - [challenge-workload.sql](shared/sql/mysql/challenge-workload.sql): a finite read-only batch to execute.
 - [challenge-inspect.sql](shared/sql/mysql/challenge-inspect.sql): identity, index, plan, and result checks.
@@ -55,7 +55,7 @@ The batch ends by itself. Run it once for the baseline and once for the fuller c
    ```
 
 3. Give the workspace path to the instructor for the two log exports. Record the server, account, MySQL version, UTC capture windows, and whether the evidence is live in `input/provenance.txt` using `nano`. Do not include the password.
-4. If you open another Bash terminal, set `WORK_DIR` to that same path. Use your assigned login wherever the commands say `YOUR_CHALLENGE_USER`.
+4. If you open another Bash terminal, set `WORK_DIR` to that same path. The commands below use the EC2 training account `developer`.
 
 ## Section: Run the baseline and observe it
 
@@ -63,7 +63,7 @@ The batch ends by itself. Run it once for the baseline and once for the fuller c
 2. In Bash, run the original process once:
 
    ```bash
-   mysql -u YOUR_CHALLENGE_USER -p mysql_ticket_challenge \
+   mysql -u developer -p mysql_ticket_challenge \
      < "$WORK_DIR/input/original-workload.sql" \
      > "$WORK_DIR/baseline-output.txt"
    batch_rc=$?
@@ -73,7 +73,7 @@ The batch ends by itself. Run it once for the baseline and once for the fuller c
 3. During execution, use a second terminal and the same database account:
 
    ```bash
-   mysql -u YOUR_CHALLENGE_USER -p mysql_ticket_challenge
+   mysql -u developer -p mysql_ticket_challenge
    ```
 
    At `mysql>`:
@@ -118,7 +118,7 @@ The batch ends by itself. Run it once for the baseline and once for the fuller c
 3. Have the instructor switch to a fresh **detail** log file. Then run the working copy once:
 
    ```bash
-   mysql -u YOUR_CHALLENGE_USER -p mysql_ticket_challenge \
+   mysql -u developer -p mysql_ticket_challenge \
      < "$WORK_DIR/input/capture-workload.sql" \
      > "$WORK_DIR/detail-output.txt"
    batch_rc=$?
@@ -133,7 +133,7 @@ The batch ends by itself. Run it once for the baseline and once for the fuller c
 1. Capture the supplied read-only inspection:
 
    ```bash
-   mysql -u YOUR_CHALLENGE_USER -p mysql_ticket_challenge \
+   mysql -u developer -p mysql_ticket_challenge \
      < "$COURSE_ROOT/shared/sql/mysql/challenge-inspect.sql" \
      > "$WORK_DIR/input/plan-before.txt"
    cat "$WORK_DIR/input/plan-before.txt"

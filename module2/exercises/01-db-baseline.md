@@ -13,7 +13,7 @@
 
 ## Before you start
 
-Module 1 stack is healthy. Instructor has provisioned a per-team MySQL training account, supplied its password privately, and enabled the diagnostic grants in the setup guide.
+Module 1 stack is healthy. The EC2 training administrator is developer with password password; alternatively, use a per-team account with the diagnostic grants in the setup guide.
 
 Read the [Learner setup and terminal guide](../../shared/learner-start.md). It explains the local workstation, application-server SSH shell and database-client prompts. Set `COURSE_ROOT` in each Bash session that uses course files; an SSH session does not inherit workstation variables.
 
@@ -57,7 +57,7 @@ fi
 
 **Where and who:** Learner · application server · Bash terminal
 
-Open nano after creating the file with restrictive permissions. Enter the four configuration lines below in the editor; replace the account and password with privately supplied values. Save with Ctrl-O, Enter; exit with Ctrl-X.
+Open nano after creating the file with restrictive permissions. Enter the four configuration lines below in the editor; use the EC2 training credentials shown below, or your assigned team credentials. Save with Ctrl-O, Enter; exit with Ctrl-X.
 
 ```bash
 umask 077
@@ -74,16 +74,16 @@ nano "$HOME/.support-lab.cnf"
 
 **Where and who:** Learner · nano editor for ~/.support-lab.cnf
 
-This is configuration text, not shell commands. Use localhost for the team account described in the setup guide.
+This is configuration text, not shell commands. These examples use the local EC2 administrator developer with password password. Use your assigned team credentials instead when provided.
 
 ```ini
 [client]
-user=YOUR_ASSIGNED_TEAM_LOGIN
-password=YOUR_PRIVATE_PASSWORD
+user=developer
+password=password
 host=localhost
 ```
 
-**Expected result:** The instructor-provided login replaces the placeholder and no placeholder remains.
+**Expected result:** The file contains the EC2 training login or your assigned team login.
 
 **If it differs:** Account host matching matters; do not switch localhost to 127.0.0.1 unless the instructor created the matching account.
 

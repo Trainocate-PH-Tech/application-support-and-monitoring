@@ -12,8 +12,8 @@ lab(1,'01-access-users','Access, identity and user creation',40,
 ['The SSH key authenticates a login; it does not make the login root.','A user, primary group, supplementary groups and home-directory permissions are separate controls.','Use sudo only for the supervised administrative step; keep routine investigation unprivileged.'],
 ['Instructor verifies the supplied key locally and demonstrates the README connection. Learners receive their own account/key; never copy the instructor key.','Record whoami, id, hostname and UTC time. Explain the meaning of ~, /, ., .. and the shell prompt.','Instructor substitutes a unique learner name below, creates the account, then installs that learner’s PUBLIC key. Do not grant all learners unrestricted sudo.','Reconnect as the learner, create ~/support-lab/evidence, and prove another learner cannot read a private file. Create a shared team group with the instructor.'],
 '''# Instructor workstation; keep private key here
-chmod 600 okada.pem
-ssh -i okada.pem ubuntu@47.131.221.162
+chmod 600 ~/pem/okada.pem
+ssh -i ~/pem/okada.pem ubuntu@47.131.221.162
 # On server
 whoami; id; hostname; date -u +%FT%TZ
 # Instructor-only example; change learner01/team01 for each team

@@ -2,20 +2,16 @@
 
 [Hands-on exercise](MYSQL_CONTENTION_RELIABILITY_EXERCISE.md) · [Module 2](module2/README.md)
 
-**Environment:** Ubuntu Bash and MySQL 8.0/8.4. SQL blocks run at `mysql>`; Bash blocks run in the Linux shell. First follow [the diagnostic guide](MYSQL_SUPPORT_DIAGNOSTICS.md) to load `mysql_support_demo` and obtain a reader account. No password belongs in a shell argument or submitted evidence. Use a training administrator only for the explicitly labeled setup/change steps. Record UTC timestamps, host, version, and account with each capture.
+**Environment:** Ubuntu Bash and MySQL 8.0/8.4. SQL blocks run at `mysql>`; Bash blocks run in the Linux shell. First follow [the diagnostic guide](MYSQL_SUPPORT_DIAGNOSTICS.md) to load `mysql_support_demo` and connect as `developer` with password `password` on the EC2 training host. No password belongs in a shell argument or submitted evidence. This account has administrator privileges; perform changes only in the explicitly labeled setup/change steps. Record UTC timestamps, host, version, and account with each capture.
 
 ## Section: Prepare writer and observer sessions
 
-1. Use three distinct connections: writer A, writer B, observer C. An instructor provides `SELECT, UPDATE` on the sample orders table to the two training writers. The reader account from the introductory guide remains read-only. For an already provisioned writer account, the administrator can grant the table permissions (replace the account and host with the exact assigned account):
+1. Use three distinct connections: writer A, writer B, observer C. The EC2 training administrator `developer` already has the writer and observer privileges needed below. Use the same login in three separate sessions; no extra grants are needed. For separate classroom writer accounts, the instructor can grant `SELECT, UPDATE` on `mysql_support_demo.orders` and provide observer diagnostics access.
 
-   ```sql
-   GRANT SELECT, UPDATE ON mysql_support_demo.orders TO 'YOUR_WRITER_USER'@'localhost';
-   ```
-
-   Open each writer from a separate Bash terminal:
+   Open each writer and observer from a separate Bash terminal; enter `password` at the prompt:
 
    ```bash
-   mysql -u YOUR_WRITER_USER -p mysql_support_demo
+   mysql -u developer -p mysql_support_demo
    ```
 2. In each writer session:
 

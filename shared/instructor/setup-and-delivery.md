@@ -2,9 +2,9 @@
 
 ## Infrastructure and version policy
 
-The inspected EC2 host was Ubuntu 26.04, approximately 2 GB RAM, with a 120 GB disk and expanded ext4 root partition. This is an observation, not a guarantee of future state. Run preflight again before delivery. Use an 8 GB RAM Linux application host and a separate 8 GB RAM SQL Server host as the classroom baseline; exact concurrent capacity must be rehearsed. The current 2 GB host is for one bounded demonstration at a time until resized. No infrastructure changes were made while authoring this package.
+The inspected EC2 host was Ubuntu 26.04, approximately 2 GB RAM, with a 120 GB disk and expanded ext4 root partition. This is an observation, not a guarantee of future state. Run preflight again before delivery. Use an 8 GB RAM Linux application host and a separate 8 GB RAM SQL Server host as the classroom baseline; exact concurrent capacity must be rehearsed. The current 2 GB host is for one bounded demonstration at a time until resized. The original package did not provision infrastructure. On 2026-10-22, MySQL was installed and the local training administrator was created on this EC2 host (see below).
 
-Use x86_64 Ubuntu for the supplied Java path. Tomcat is pinned to 10.1.61, Java to major 17, and Connector/J to 8.4.0. Ubuntu installs its repository MySQL/Maven versions; record `mysql --version`, `mvn -version`, `java -version` and `dpkg-query -W` after provisioning. Do not label those OS package versions as already tested on the EC2 server. Rehearse before class and retain the exact package inventory. SQL Server uses 2022 Developer on Ubuntu 22.04; record the installed cumulative update with `@@VERSION`.
+Use x86_64 Ubuntu for the supplied Java path. Tomcat is pinned to 10.1.61, Java to major 17, and Connector/J to 8.4.0. Ubuntu installs its repository MySQL/Maven versions; record `mysql --version`, `mvn -version`, `java -version` and `dpkg-query -W` after provisioning. Only MySQL has been verified in the 2026-10-22 check below; do not treat other OS package versions as tested by that check. Rehearse before class and retain the exact package inventory. SQL Server uses 2022 Developer on Ubuntu 22.04; record the installed cumulative update with `@@VERSION`.
 
 ## Preparation sequence
 
@@ -17,6 +17,30 @@ Use x86_64 Ubuntu for the supplied Java path. Tomcat is pinned to 10.1.61, Java 
 7. Install the separate SQL Server host using `shared/instructor/sqlserver-setup.md`. Run the live SQL exercises and the intentional job failure once before delivery.
 8. Rehearse inject → observe → reset → verify for every fault. Confirm no fault state remains and no learner transaction stays open.
 9. Copy fixtures into learner workspaces and confirm every team can run the parser. Allocate one shared-stack change slot per team; other teams use evidence exercises while waiting.
+
+## EC2 MySQL administrator
+
+On 2026-10-22, connected to `ubuntu@47.131.221.162` using `~/pem/okada.pem`. MySQL was not installed. Installed and enabled it with:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y mysql-server
+sudo systemctl enable --now mysql
+sudo mysql
+```
+
+Created the requested local administrator in the root MySQL session:
+
+```sql
+CREATE USER 'developer'@'localhost' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON *.* TO 'developer'@'localhost' WITH GRANT OPTION;
+SHOW GRANTS FOR 'developer'@'localhost';
+exit
+```
+
+These creation commands describe the completed setup; do not rerun `CREATE USER` for the existing account. For daily examples, use `mysql -u developer -p` and enter `password`. The example client file in Module 2 uses the same credentials. For separate learner identities, use the optional team-account procedure below instead.
+
+Verified at 01:02 UTC: `mysql.service` active and enabled, server `8.4.11-0ubuntu0.26.04.1`, listener `127.0.0.1:3306`, and successful authenticated `SELECT 1` over both the Unix socket and local TCP. Both connections matched `developer@localhost`; the grants include global administrative privileges and grant option. No sample databases were loaded during this installation.
 
 ## MySQL diagnostic and writer accounts
 

@@ -24,13 +24,28 @@ All fixtures represent fictional training incidents. The package contains setup 
 The test server is hosted at AWS. The original instructor connection is:
 
 ```bash
-chmod 600 okada.pem
-ssh -i okada.pem ubuntu@47.131.221.162
+chmod 600 ~/pem/okada.pem
+ssh -i ~/pem/okada.pem ubuntu@47.131.221.162
 ```
 
 `ubuntu` is a sudo-capable account, **not the root account**. Keep the private key on the instructor workstation and do not distribute it with course materials. Learners use their own accounts and keys, created during the supervised access exercise.
 
 The inspected host has Ubuntu 26.04, about 2 GB RAM and a 120 GB disk with an expanded root filesystem. Recheck before delivery. The recommended shared classroom application host has 8 GB RAM; SQL Server uses a separate supported host. The present storage layout does not prove why a user previously ran out of space; the course distinguishes quota, permission, inode, filesystem and partition issues.
+
+### MySQL access on EC2
+
+Verified on 2026-10-22 at 01:02 UTC: MySQL was absent, so `mysql-server` was installed. Server version is `8.4.11-0ubuntu0.26.04.1`; `mysql.service` is active and enabled at boot. MySQL listens on `127.0.0.1:3306`.
+
+After SSH login, connect with the training administrator:
+
+```bash
+mysql -u developer -p
+# Enter password at the prompt: password
+```
+
+The account is `'developer'@'localhost'`, with `ALL PRIVILEGES ON *.*` and `WITH GRANT OPTION`. Both socket and TCP login (`mysql --protocol=TCP -h 127.0.0.1 -u developer -p`) were verified with `CURRENT_USER()` and `SELECT 1`. Use these credentials in the MySQL examples; the password is entered at the prompt, not as a command argument. This shared account is for the EC2 training exercises; separate classroom team accounts remain an option.
+
+See [MySQL diagnostics](MYSQL_SUPPORT_DIAGNOSTICS.md) for database setup and examples, and [instructor setup](shared/instructor/setup-and-delivery.md#ec2-mysql-administrator) for provisioning commands. Installing MySQL does not load the sample databases; run each guide's setup before its queries.
 
 ## Rebuild course assets
 
