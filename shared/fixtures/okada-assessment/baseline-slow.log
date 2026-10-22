@@ -1,0 +1,10 @@
+# Time: 2026-10-21T10:19:00.000000Z
+# User@Host: assessment[assessment] @ localhost []  Id: 77
+# Query_time: 8.000000  Lock_time: 0.000010 Rows_sent: 1  Rows_examined: 0
+SET timestamp=1792577940;
+SELECT SLEEP(8) AS heartbeat_probe;
+# Time: 2026-10-21T10:19:09.000000Z
+# User@Host: assessment[assessment] @ localhost []  Id: 77
+# Query_time: 1.200000  Lock_time: 0.000010 Rows_sent: 1  Rows_examined: 10000
+SET timestamp=1792577940;
+SELECT COUNT(*) FROM players;

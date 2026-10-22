@@ -1,0 +1,40 @@
+# Time: 2026-10-21T10:19:00.000000Z
+# User@Host: assessment[assessment] @ localhost []  Id: 77
+# Query_time: 8.000000  Lock_time: 0.000010 Rows_sent: 1  Rows_examined: 0
+SET timestamp=1792577940;
+SELECT SLEEP(8) AS heartbeat_probe;
+# Time: 2026-10-21T10:19:01.000000Z
+# User@Host: assessment[assessment] @ localhost []  Id: 77
+# Query_time: 0.410000  Lock_time: 0.000010 Rows_sent: 1  Rows_examined: 1000000
+SET timestamp=1792577940;
+SELECT /* loyalty_statement */ COUNT(*) AS transaction_count, COALESCE(SUM(amount_php),0.00) AS total_php FROM transactions WHERE player_id=42 AND created_at >= '2026-10-15 00:00:00' AND created_at < '2026-10-22 00:00:00' AND transaction_type='BUY_IN' AND status='SETTLED';
+# Time: 2026-10-21T10:19:02.000000Z
+# User@Host: assessment[assessment] @ localhost []  Id: 77
+# Query_time: 0.390000  Lock_time: 0.000010 Rows_sent: 1  Rows_examined: 1000000
+SET timestamp=1792577940;
+SELECT /* loyalty_statement */ COUNT(*) AS transaction_count, COALESCE(SUM(amount_php),0.00) AS total_php FROM transactions WHERE player_id=43 AND created_at >= '2026-10-15 00:00:00' AND created_at < '2026-10-22 00:00:00' AND transaction_type='BUY_IN' AND status='SETTLED';
+# Time: 2026-10-21T10:19:03.000000Z
+# User@Host: assessment[assessment] @ localhost []  Id: 77
+# Query_time: 0.460000  Lock_time: 0.000010 Rows_sent: 1  Rows_examined: 1000000
+SET timestamp=1792577940;
+SELECT /* loyalty_statement */ COUNT(*) AS transaction_count, COALESCE(SUM(amount_php),0.00) AS total_php FROM transactions WHERE player_id=42 AND created_at >= '2026-10-15 00:00:00' AND created_at < '2026-10-22 00:00:00' AND transaction_type='BUY_IN' AND status='SETTLED';
+# Time: 2026-10-21T10:19:04.000000Z
+# User@Host: assessment[assessment] @ localhost []  Id: 77
+# Query_time: 0.400000  Lock_time: 0.000010 Rows_sent: 1  Rows_examined: 1000000
+SET timestamp=1792577940;
+SELECT /* loyalty_statement */ COUNT(*) AS transaction_count, COALESCE(SUM(amount_php),0.00) AS total_php FROM transactions WHERE player_id=44 AND created_at >= '2026-10-15 00:00:00' AND created_at < '2026-10-22 00:00:00' AND transaction_type='BUY_IN' AND status='SETTLED';
+# Time: 2026-10-21T10:19:05.000000Z
+# User@Host: assessment[assessment] @ localhost []  Id: 77
+# Query_time: 0.440000  Lock_time: 0.000010 Rows_sent: 1  Rows_examined: 1000000
+SET timestamp=1792577940;
+SELECT /* loyalty_statement */ COUNT(*) AS transaction_count, COALESCE(SUM(amount_php),0.00) AS total_php FROM transactions WHERE player_id=42 AND created_at >= '2026-10-15 00:00:00' AND created_at < '2026-10-22 00:00:00' AND transaction_type='BUY_IN' AND status='SETTLED';
+# Time: 2026-10-21T10:19:06.000000Z
+# User@Host: assessment[assessment] @ localhost []  Id: 77
+# Query_time: 0.430000  Lock_time: 0.000010 Rows_sent: 1  Rows_examined: 1000000
+SET timestamp=1792577940;
+SELECT /* loyalty_statement */ COUNT(*) AS transaction_count, COALESCE(SUM(amount_php),0.00) AS total_php FROM transactions WHERE player_id=45 AND created_at >= '2026-10-15 00:00:00' AND created_at < '2026-10-22 00:00:00' AND transaction_type='BUY_IN' AND status='SETTLED';
+# Time: 2026-10-21T10:19:09.000000Z
+# User@Host: assessment[assessment] @ localhost []  Id: 77
+# Query_time: 1.200000  Lock_time: 0.000010 Rows_sent: 1  Rows_examined: 10000
+SET timestamp=1792577940;
+SELECT COUNT(*) FROM players;
